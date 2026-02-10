@@ -1,0 +1,25 @@
+# Базовые файлы IDE
+*.iml
+.gradle
+/local.properties
+/.idea/
+.kotlin/
+.DS_Store
+
+# Сборка
+/build/
+/captures/
+
+# Кэши и временные файлы
+.externalNativeBuild
+.cxx
+*.pyc
+
+# Gradle
+.gradle/
+build/
+
+# Android Studio специфичное
+captures/
+navigation/
+assetWizardSettings.xml
