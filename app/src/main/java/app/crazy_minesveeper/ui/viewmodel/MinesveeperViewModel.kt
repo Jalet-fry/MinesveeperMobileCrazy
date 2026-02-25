@@ -15,6 +15,7 @@ class MinesveeperViewModel : ViewModel() {
     var engine by mutableStateOf<MinesveeperEngine?>(null)
         private set
     
+    // Этот тикер заставляет Compose перерисовывать весь экран при изменении в Engine
     var tick by mutableLongStateOf(0L)
         private set
 
@@ -29,7 +30,14 @@ class MinesveeperViewModel : ViewModel() {
     fun startLevel(settings: LevelSettings) {
         stopTimer()
         currentTime = 0
-        engine = MinesveeperEngine(settings)
+        val newEngine = MinesveeperEngine(settings)
+        
+        // Подписываемся на изменения внутри движка
+        newEngine.onStateChanged = {
+            tick++ 
+        }
+        
+        engine = newEngine
         tick++
     }
 
@@ -54,7 +62,6 @@ class MinesveeperViewModel : ViewModel() {
         if (eng.isGameOver || eng.isWin) {
             stopTimer()
         }
-        tick++
     }
 
     fun onCellLongClick(x: Int, y: Int) {
@@ -62,7 +69,6 @@ class MinesveeperViewModel : ViewModel() {
         if (eng.isGameOver || eng.isWin) return
         
         eng.toggleFlag(x, y)
-        tick++
     }
 
     fun restart() {

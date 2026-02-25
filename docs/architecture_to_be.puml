@@ -1,0 +1,31 @@
+@startuml
+skinparam packageStyle rectangle
+
+package "Presentation Layer (UI)" {
+    [Compose Screens] <<View>>
+    [MinesveeperViewModel] <<ViewModel>>
+}
+
+package "Domain Layer" {
+    [MinesveeperEngine] <<Business Logic>>
+    [GameModels] <<Entities>>
+    interface "IGameRepository" <<Interface>>
+}
+
+package "Data Layer" {
+    [GameRepositoryImpl] <<Implementation>>
+    [LocalDataSource] <<Storage>>
+    [CompressionUtil] <<Utility>>
+}
+
+' Relations
+[Compose Screens] .down.> [MinesveeperViewModel] : observes
+[MinesveeperViewModel] -down-> [MinesveeperEngine] : controls
+[MinesveeperViewModel] -down-> [IGameRepository] : uses
+
+[MinesveeperEngine] -right-> [GameModels] : manages
+[IGameRepository] <|.down. [GameRepositoryImpl] : implements
+[GameRepositoryImpl] -down-> [LocalDataSource]
+[GameRepositoryImpl] -down-> [CompressionUtil]
+
+@enduml

@@ -1,0 +1,48 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam monochrome true
+
+package "UI (Compose)" {
+    [MinesveeperScreen] as Screen
+    [MinesveeperGrid] as Grid
+    [CellView] as Cell
+}
+
+package "ViewModel" {
+    [MinesveeperViewModel] as VM
+}
+
+package "Domain (Logic)" {
+    [MinesveeperEngine] as Engine
+    package "Models" {
+        [GameCell] as CellModel
+        [LevelSettings] as Settings
+        [Topology] as Topo
+        [NeighborShape] as Shape
+    }
+}
+
+package "Data" {
+    [Compression] as Comp
+}
+
+Screen -down-> VM
+VM -down-> Engine
+
+Engine -right-> Settings
+Engine -down-> CellModel
+Settings -down-> Topo
+Settings -down-> Shape
+
+' Механики
+Engine ..> Comp : "Decompress board data"
+CellModel ..> Shape : "Calculate neighbors"
+
+note right of Engine
+  Логика:
+  - Вес мин (1, 2, 3)
+  - Кастомные формы соседей
+  - Топология (зацикливание)
+end note
+
+@enduml
