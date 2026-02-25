@@ -5,18 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.crazy_minesveeper.data.repository.LevelRepository
 import app.crazy_minesveeper.domain.model.LevelSettings
 import app.crazy_minesveeper.ui.MinesveeperScreen
 import app.crazy_minesveeper.ui.theme.Crazy_minesveeperTheme
@@ -27,19 +25,33 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Crazy_minesveeperTheme {
-                var currentLevel by remember { mutableStateOf<LevelSettings?>(null) }
+                var screenState by remember { mutableStateOf("menu") }
+                var customSettings by remember { mutableStateOf(LevelSettings()) }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
-                        if (currentLevel == null) {
-                            LevelSelectScreen {
-                                currentLevel = it
+                        when (screenState) {
+                            "menu" -> {
+                                MainMenu(
+                                    onStartCustom = { screenState = "settings" }
+                                )
                             }
-                        } else {
-                            MinesveeperScreen(
-                                levelSettings = currentLevel!!,
-                                onBack = { currentLevel = null }
-                            )
+                            "settings" -> {
+                                CustomSettingsScreen(
+                                    initialSettings = customSettings,
+                                    onStart = {
+                                        customSettings = it
+                                        screenState = "game"
+                                    },
+                                    onBack = { screenState = "menu" }
+                                )
+                            }
+                            "game" -> {
+                                MinesveeperScreen(
+                                    levelSettings = customSettings,
+                                    onBack = { screenState = "settings" }
+                                )
+                            }
                         }
                     }
                 }
@@ -49,32 +61,114 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun LevelSelectScreen(onLevelSelected: (LevelSettings) -> Unit) {
+fun MainMenu(onStartCustom: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Minesveeper 2023",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 48.dp, bottom = 24.dp)
-        )
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 80.dp),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Text("Crazy Minesweeper", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(32.dp))
+        Button(onClick = onStartCustom, modifier = Modifier.width(200.dp)) {
+            Text("NEW GAME")
+        }
+    }
+}
+
+@Composable
+fun CustomSettingsScreen(
+    initialSettings: LevelSettings,
+    onStart: (LevelSettings) -> Unit,
+    onBack: () -> Unit
+) {
+    var rows by remember { mutableStateOf(initialSettings.rows.toString()) }
+    var cols by remember { mutableStateOf(initialSettings.cols.toString()) }
+    var p1 by remember { mutableStateOf(initialSettings.p1.toString()) }
+    var p2 by remember { mutableStateOf(initialSettings.p2.toString()) }
+    var p3 by remember { mutableStateOf(initialSettings.p3.toString()) }
+    var pAnti by remember { mutableStateOf(initialSettings.pAnti.toString()) }
+    var isChargeMode by remember { mutableStateOf(initialSettings.isChargeMode) }
+
+    val totalPercent = (p1.toDoubleOrNull() ?: 0.0) + 
+                       (p2.toDoubleOrNull() ?: 0.0) + 
+                       (p3.toDoubleOrNull() ?: 0.0) + 
+                       (pAnti.toDoubleOrNull() ?: 0.0)
+
+    val rowsValue = rows.toIntOrNull() ?: -1
+    val colsValue = cols.toIntOrNull() ?: -1
+    
+    val isRowsValid = rowsValue in 5..50
+    val isColsValid = colsValue in 5..50
+    val isPercentValid = totalPercent <= 80.0
+    val isValid = isRowsValid && isColsValid && isPercentValid
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("SETTINGS", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(16.dp))
+
+        SettingField("Rows (5-50)", rows) { rows = it }
+        SettingField("Cols (5-50)", cols) { cols = it }
+        SettingField("Mines 1x % (Red)", p1) { p1 = it }
+        SettingField("Mines 2x % (Green)", p2) { p2 = it }
+        SettingField("Mines 3x % (Blue)", p3) { p3 = it }
+        SettingField("Mines -1x % (Anti)", pAnti) { pAnti = it }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         ) {
-            items(LevelRepository.levels.size) { index ->
-                val level = LevelRepository.levels[index]
-                Button(
-                    onClick = { onLevelSelected(level) },
-                    modifier = Modifier.aspectRatio(1f)
-                ) {
-                    Text(text = level.day.toString(), fontSize = 20.sp)
-                }
+            Text("Charge Mode (Math logic)", modifier = Modifier.weight(1f))
+            Switch(checked = isChargeMode, onCheckedChange = { isChargeMode = it })
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Total Mines: ${String.format("%.1f", totalPercent)}%",
+            color = if (!isPercentValid) Color.Red else Color.DarkGray,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(24.dp))
+        Row {
+            Button(onClick = onBack, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
+                Text("BACK")
+            }
+            Spacer(Modifier.width(16.dp))
+            Button(
+                onClick = {
+                    onStart(LevelSettings(
+                        rows = rowsValue,
+                        cols = colsValue,
+                        p1 = p1.toDoubleOrNull() ?: 10.0,
+                        p2 = p2.toDoubleOrNull() ?: 5.0,
+                        p3 = p3.toDoubleOrNull() ?: 2.0,
+                        pAnti = pAnti.toDoubleOrNull() ?: 3.0,
+                        isChargeMode = isChargeMode
+                    ))
+                },
+                enabled = isValid
+            ) {
+                Text("START")
             }
         }
+    }
+}
+
+@Composable
+fun SettingField(label: String, value: String, onValueChange: (String) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.width(150.dp),
+            singleLine = true
+        )
     }
 }

@@ -4,36 +4,29 @@ import app.crazy_minesveeper.domain.model.*
 
 object LevelRepository {
     val levels = listOf(
-        LevelSettings(day = 38, title = "Reintroduction", description = "Standard rules to get you started.", width = 15, height = 15, mines = mapOf("R" to 20), boardData = "8AEAALohVlQxsw0//S0LUo7oUIJYGFV0BAEPAqCAqGgOiAMjYTQAHRsDAV1urcNy+/y9lOETHI", isFixedPattern = false),
-        LevelSettings(day = 39, title = "Decorating", description = "Larger board with 60 mines.", width = 23, height = 23, mines = mapOf("R" to 60), boardData = "+y4U5oNQoSWAa0VHWxCaGhaliXRUGQsLoqCIWGaGBKwi1ChhSQjviEoWJaAAKFg8/0AA4Adsxp8BSrYYxIpu2IrCJ27CnIEtrX1KqWhLnsaIYAmPBC9d8cz9/5PsbA", isFixedPattern = false),
-        LevelSettings(day = 40, title = "RGB", description = "3 disjoint boards: Red, Green, Blue.", width = 50, height = 50, mines = mapOf("r" to 30, "g" to 30, "b" to 30), boardData = "/u4ApiVUxKF1ANqCRagK1IE2AV00GkyB6yhCYguuYG7QpfQBcoH9xRRERqyY+iAvvwHImQX3EUSHesAY7o/TQJdwc2SDWYBKYCTvDX35BXRC6Y1bygOmKOsonTEWQUR7vhqYjl5gRZQDdEIRQMu8IJiwdMSB/ADQACQgETEB6SACFhNMBZMgiA1kh6mQw3ATlVACYp/5qegAAmJFfkDQgG0xEkzG6Cgz/jnQkMQQboAKJjlaxlyZD9MQxMS/6YgaYC9lwNMgDUAEWIYssCpiAd8AN+SKmLg/ALpiLpiO36BERDPQoHf4Ev+AOuC7WhCYitxwNYwPrkCJgM37BX5AdMQRPQWzAC44Bdplsa5a0lrZl62tvY2d7N+bm7paeaGjrN6+pqwVKFiBI6MDxjA0EDAAQwcIFNQ2YMnj5w6SJkCJYuUK9XX0dPdmZ39jL1VJKztqcUvx3zJwTh5uenr3zk5fpv7+Pln+l//8/fLLefh4+3v6eqpWoUrl6xaiRoEKZOkqJY6duHL8/vqo", isFixedPattern = false),
-        LevelSettings(day = 41, title = "Large Mines", description = "Mines counted in a 5x5 area.", width = 27, height = 27, mines = mapOf("R" to 30, "RX" to 10), boardData = "/VENW8Ho0yt4ZoAJ9NA1VACjIYmoFpqJvkBVPDnXAYjDDz/0HAL5Ab5AAP6NDl8w58gUG/WsAfIBoeAI0DgB4YI0CQjRoA0XB0dBKAAqNA2hAcgAjoAAIyAIAA7t/788uY395DO+fD3ikm47N5d+nXMqIL3AgnDaHRFDzDQg8XU6YqpVoB5pMFvKv2UMu5je7t/yeA", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 42, title = "The Answer", description = "Row/Column sums shown on the edges.", width = 22, height = 22, mines = mapOf("R" to 90), boardData = "6K/74zs/0AEIAaACaACIA/LfJgg", isFixedPattern = true, isDecrementing = true, grayMines = true),
-        LevelSettings(day = 43, title = "Everyones Favourite", description = "Knight move neighborhood.", width = 23, height = 35, mines = mapOf("R" to 40, "RX" to 5), shape = NeighborShape.KNIGHT, boardData = "9AAdIgXQAUSINn+AEPAb99E++YQkX/SIUNjoABPqB30BnqAt/wZCwmgxAooT60CK/gFXgJIQTSIgWIJoCEvoI9aAxIgakQ6lYNoMApCFUiFkZATAchW30kPfC5aX3/kvZZZ4PHbfTV1TCuikbr52WxRw", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 44, title = "Heavy Cylinder", description = "Board wraps around horizontally.", width = 24, height = 30, mines = mapOf("R" to 35, "RX" to 15), topology = Topology(xWrap = 1), boardData = "wAg294B0dWLZnLaCXbM4bISp0ILsJJ2AcMBG0AD0dHAjwfR0bjCf4bxn39PY3xa8ur+bOq67IkDm1FCdLIkDm10", isFixedPattern = false, isDecrementing = true, grayMines = true),
-        LevelSettings(day = 45, title = "Torus", description = "Board wraps in both directions.", width = 20, height = 20, mines = mapOf("R" to 45), topology = Topology(1, 1), boardData = "/u4AplUESQNWoCtSAtSAtSAVaAJ0YDqADvQAaAAiABIAAUABEgAIgASAAFAARIAAIAA7ZvvZvvY397G/vbebm79Of6X8", isFixedPattern = false),
-        LevelSettings(day = 46, title = "Colorcharge", description = "Mines have additive color charges.", width = 25, height = 25, mines = mapOf("R" to 35, "G" to 35, "B" to 35), displayStyle = DisplayStyle.COLORCHARGE, boardData = "+2oOiANb8FRcEADvyAIwJX5F37ENdARawG/5ss4V8/0AAGuA9EAVFwWgwGhIOYHtODriF1nAFSEtBKdxxai4q1wL0XA0MA6RgCQAehRWnIjTQDQwKJghM08ll6vfHP3/nuRztwx2301Vau1CXPZFohxAE", isFixedPattern = false),
-        LevelSettings(day = 47, title = "Memorization", description = "Numbers fade away after each turn.", width = 10, height = 10, mines = mapOf("R" to 15), boardData = "n+gDAg", isFixedPattern = true, grayMines = true),
-        LevelSettings(day = 48, title = "Dog", description = "Dog provides local grayscale vision.", width = 21, height = 21, mines = mapOf("R" to 24, "RX" to 24), boardData = "5/lt6AASCgCJgWigKiwNQ4DRIEID7CAyJAFiQNiQTSkPWAfsmGosA9BQhExGhAGiYRpQII4R1YAUUEfRQDSYDomCKEBgB38D0TALQFz9imoIIzwHSsFcUE1AAFlFZdRVIeuquim6+y2ImOBwubXPJL13xz89/T4X7lnhi", isFixedPattern = false, grayMines = true, spawn = listOf("ball", "dog")),
-        LevelSettings(day = 49, title = "Magnets", description = "Polarized counting: Red below, Blue above.", width = 23, height = 28, mines = mapOf("G" to 90), displayStyle = DisplayStyle.COLORCHARGE, shape = NeighborShape.MAGNETS, topology = Topology(yWrap = 1), boardData = "0AAwA6AABAb//7/hk/0A/8vUMDqFAKGBjEneuG2vSrGHesmg", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 50, title = "Neutralization", description = "Colorcharge + Decrementing on Torus.", width = 25, height = 25, mines = mapOf("R" to 35, "G" to 35, "B" to 35), displayStyle = DisplayStyle.COLORCHARGE, topology = Topology(1, 1), boardData = "+jQChQZfkCfoGADrGKvy9UXDUYL9kgB+QGvgsv4jmDRgQoABIUF+lwejYNSQCRkA3MDH4CKMPDvA3QoJP+gAAhIDoyCoODUABEXAD1Ld8E8/X/nnsylZ4Y7b6aqWhLi9jaEO4JYI", isFixedPattern = false, isDecrementing = true),
-        LevelSettings(day = 51, title = "Checkers", description = "Chessboard pattern field.", width = 24, height = 24, mines = mapOf("RX" to 40), boardData = "4AICJn/vf/v2E0WFEv/0HPl", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 52, title = "BAAA", description = "Sheep movement puzzle.", width = 25, height = 25, mines = mapOf("R" to 22, "G" to 22, "B" to 22), displayStyle = DisplayStyle.COLORCHARGE, boardData = "4AH/GvowCtkE1nC1eASV+kwAmAPRMCRgI1fC1nBqAhiZgWi4Qi4roAAoADowB+ioAgQDf8Sf8Q2LAEXBqZgLAg/acARoRseFMEE78ij+CtLhVFssWJza6ivQmOCEmk1Z1JL13xz9/566WSQAzwxrtvpqGm2GXu", isFixedPattern = false, spawn = listOf("sheep")),
-        LevelSettings(day = 53, title = "Blue Bombs", description = "Large blue mines on Klein Bottle.", width = 28, height = 28, mines = mapOf("R" to 36, "G" to 36, "BX" to 12), displayStyle = DisplayStyle.COLORCHARGE, topology = Topology(xWrap = 2, yWrap = 1), boardData = "+hokhohQgCQ0P0ZB0J/5/oADZAoABaAAIxoAAdDQ1DQyXiAAkAOhYShgFf//f8f0MBkNB6GAgnZjXENFBVhMeCF6724jVfM5F+nfv56", isFixedPattern = false),
-        LevelSettings(day = 54, title = "Nuclear", description = "7x7 massive neighborhood.", width = 24, height = 24, mines = mapOf("R" to 40, "RX" to 5), shape = NeighborShape.NUCLEAR, topology = Topology(1, 1), boardData = "P8", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 55, title = "Stripes", description = "RGB vertical stripe generation.", width = 21, height = 21, mines = mapOf("R" to 30, "G" to 30, "B" to 30), displayStyle = DisplayStyle.COLORCHARGE, topology = Topology(xWrap = 2), boardData = "6U/79xVAABEw+ROf6ABgAes2T4I", isFixedPattern = false),
-        LevelSettings(day = 56, title = "Horse", description = "Horse jumps in knight's path.", width = 20, height = 20, mines = mapOf("R" to 50), boardData = "+u5QxoFasDUcC2XEnwBq7jD4BPQEEWoLo0IJ4DaeiDTAVawBVxnz/QAOADREJR4QokGJEHd9AREhC+IexQjR8GPmYRt/3pXlL9CXc9jRDAExyF1vE5", isFixedPattern = false, grayMines = true, spawn = listOf("horse")),
-        LevelSettings(day = 57, title = "Redshift", description = "Distance-based RGB charges.", width = 27, height = 27, mines = mapOf("B" to 140), displayStyle = DisplayStyle.COLORCHARGE, shape = NeighborShape.REDSHIFT, topology = Topology(1, 1), boardData = "+f6ABKAAepIKqIfRMERo5wAoAAoWAdGQ1Gi2jIevgSVP0GInzCbpgqoBOqwOjQZToJQ4I7BgjEhdYwdbQ3bIOcYKoyEo2E+9oMlAXRAKTQJ0JCUbDaMiDvg/fsGTUWv2Do0H7uD7/iVaxloRlBAExyFqrodVN19lsUcDwpM7zrkXL13xz9/4r1Byzwx2301abYZ", isFixedPattern = false, grayMines = true, isDecrementing = true),
-        LevelSettings(day = 58, title = "Herd Me", description = "Sheep + Dog interaction.", width = 24, height = 24, mines = mapOf("R" to 29, "RX" to 29), boardData = "5AIABd2AFpw2gAYi4nuuVoSFXXBUXcsq4AISF8zBgyWP+gACjADseLPmA0XRFfFa2BveG60mNVYgoLz7/EJc9mff52G+gt", isFixedPattern = false, grayMines = true, spawn = listOf("ball", "sheep", "dog")),
-        LevelSettings(day = 59, title = "Anti Knight", description = "Knight move subtracts from count.", width = 22, height = 22, mines = mapOf("R" to 50), displayStyle = DisplayStyle.MINUSGB, shape = NeighborShape.ANTI_KNIGHT, boardData = "P8", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 60, title = "Bullet Hell", description = "Protect sheep from flying projectiles!", width = 26, height = 26, mines = mapOf("R" to 50), boardData = "0FSKM/709+f6ACEAEATd5Uw", isFixedPattern = false, spawn = listOf("sheep")),
-        LevelSettings(day = 61, title = "Customization", description = "Sandbox mode from JS.", width = 20, height = 20, mines = mapOf("R" to 60), boardData = "P8", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 62, title = "Fake 3D", description = "Stacked 6x6 layers acting as 3D.", width = 6, height = 41, mines = mapOf("R" to 10), boardData = "0oykGH4AUAAj/+k", isFixedPattern = true, grayMines = true),
-        LevelSettings(day = 63, title = "Unsolving", description = "Everything is reversed. Clicks swapped!", width = 20, height = 20, mines = mapOf("R" to 70), boardData = "P8", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 64, title = "Power of 2", description = "Click 2s to toggle grayscale.", width = 26, height = 22, mines = mapOf("R" to 20, "RX" to 20), boardData = "8VpVEBL8AeiokloBRX/SsQ0ADj/oqIJSAdFQBAAzRUTfFapWIoqTAAf5T8NY9yUDEsFV6fc7cZT4", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 65, title = "Clock", description = "Delayed reveal countdown moves.", width = 31, height = 25, mines = mapOf("R" to 65), topology = Topology(xWrap = 1), boardData = "/RkKRgWo0AJgE6whq/BFMApZQTokDo4BQAQAG0sBkYFJ/oAD+jAG94JTEJekJ0xFljEpgOqCdMA5ywWsIYzATowDOeEUxEH2APowMswF1lDnrBNYRFfg2i4QswB35GkYF7KkTjhWjAmywBTIPdMDwBoaEX0A6khL/gE4qMCtAAVAAMovviCTjzMw0IMAEYcQVpvzDPue7H3HeSTQ/R0t+vpRWquim6/LLYo4IZvTyS7t/fbA", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 66, title = "Traveling Saleshorse", description = "Collect all checkpoints with the horse.", width = 34, height = 34, mines = mapOf("R" to 140), boardData = "/SIIfcAvaDocD77hD2gl7QNIADpELvsA3TAEDJNRBl7QakQw5YD6QkKQDNsAhQwTSAYYUBtOAqKAdqQZhwe9oWof/pABvwA0gCHUAcVs/wB0AA6HCaBgiHA2QHQAUQkepEApALAB2HJlDGNDhBAwJ7TrQEASECocGKYDbsrbtaZMpoyT3XqVUXWRpRCqc8Su64+9dn/5jnjttqos8EuONAQAwv/jeeO97wzD4dhO4Rk9LK69A", isFixedPattern = false, grayMines = true, spawn = listOf("cheese", "rat", "horse")),
-        LevelSettings(day = 67, title = "Projective", description = "Real Projective Plane wrap.", width = 20, height = 20, mines = mapOf("R" to 40), topology = Topology(2, 2), boardData = "P8", isFixedPattern = false, grayMines = true),
-        LevelSettings(day = 68, title = "The End", description = "You've reached the final day! Thanks.", width = 20, height = 20, mines = mapOf("R" to 10), boardData = "P8", isFixedPattern = false, grayMines = true)
+        LevelSettings(
+            title = "Easy (10x10)",
+            width = 10,
+            height = 10,
+            p1 = 10.0, p2 = 2.0, p3 = 0.0, pAnti = 1.0
+        ),
+        LevelSettings(
+            title = "Medium (15x15)",
+            width = 15,
+            height = 15,
+            p1 = 12.0, p2 = 4.0, p3 = 1.0, pAnti = 2.0
+        ),
+        LevelSettings(
+            title = "Hard (20x20)",
+            width = 20,
+            height = 20,
+            p1 = 15.0, p2 = 6.0, p3 = 3.0, pAnti = 3.0
+        ),
+        LevelSettings(
+            title = "Chaos (25x25)",
+            width = 25,
+            height = 25,
+            p1 = 10.0, p2 = 10.0, p3 = 5.0, pAnti = 10.0
+        )
     )
 }
