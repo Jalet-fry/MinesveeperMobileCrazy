@@ -69,7 +69,6 @@ object Compression {
             }
         }
 
-        // ВАЖНО: JS заполняет массив так: for(x...) for(y...) rawData[x][y] = nextValue
         val board = Array(x) { IntArray(y) }
         var linearIdx = 0
         for (i in 0 until x) {

@@ -1,48 +1,118 @@
 @startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome false
 skinparam packageStyle rectangle
-skinparam monochrome true
+skinparam linetype ortho
+skinparam nodesep 100
+skinparam ranksep 100
 
-package "UI (Compose)" {
-    [MinesveeperScreen] as Screen
-    [MinesveeperGrid] as Grid
-    [CellView] as Cell
-}
+title Crazy Minesveeper — Детальная диаграмма классов (As Is)
 
-package "ViewModel" {
-    [MinesveeperViewModel] as VM
-}
+package "Presentation Layer (UI)" #E1F5FE {
+    class MainActivity <<Activity>> {
+        - screenState: MutableState<String>
+        - customSettings: MutableState<LevelSettings>
+        + onCreate(Bundle)
+        + MainMenu(onStart)
+        + CustomSettingsScreen(initial, onStart, onBack)
+        + SettingField(label, value, onValueChange)
+    }
 
-package "Domain (Logic)" {
-    [MinesveeperEngine] as Engine
-    package "Models" {
-        [GameCell] as CellModel
-        [LevelSettings] as Settings
-        [Topology] as Topo
-        [NeighborShape] as Shape
+    class MinesveeperViewModel <<ViewModel>> {
+        + engine: MinesveeperEngine?
+        + tick: Long
+        + currentTime: Long
+        + currentTool: Tool
+        - timerJob: Job?
+        - lastPausedTime: Long
+        + startLevel(LevelSettings)
+        + onCellClick(x, y)
+        + onCellLongClick(x, y)
+        + restart()
+        + startTimer()
+        + stopTimer()
+    }
+
+    enum Tool {
+        DIG
+        FLAG
     }
 }
 
-package "Data" {
-    [Compression] as Comp
+package "Domain Layer (Logic)" #E8F5E9 {
+    class MinesveeperEngine {
+        + width: Int
+        + height: Int
+        + cells: Array<Array<GameCell>>
+        + isGameOver: Boolean
+        + isWin: Boolean
+        + isFirstClick: Boolean
+        + totalMines: Map<Int, Int>
+        + remainingMines: Map<Int, Int>
+        + onStateChanged: (() -> Unit)?
+        - activeFlagTypes: List<Int>
+        + toggleFlag(x, y)
+        + revealCell(x, y)
+        - generateBoard(safeX, safeY)
+        - calculateSum(x, y): Int
+        - getCell(x, y): GameCell?
+        - revealAllField()
+        - checkWin()
+        - updateRemainingCounts()
+    }
+
+    class GameCell <<Data>> {
+        + x: Int
+        + y: Int
+        + mineValue: Int
+        + isRevealed: Boolean
+        + revealedByPlayer: Boolean
+        + flaggedValue: Int
+        + adjacentSum: Int
+        + exists: Boolean
+        + isMine: Boolean <<get>>
+        + isFlagged: Boolean <<get>>
+    }
+
+    class LevelSettings <<Data>> {
+        + title: String
+        + rows: Int
+        + cols: Int
+        + p1, p2, p3, pAnti: Double
+        + isChargeMode: Boolean
+        + width: Int <<get>>
+        + height: Int <<get>>
+    }
 }
 
-Screen -down-> VM
-VM -down-> Engine
+package "Data Layer (Infrastructure)" #FFF9C4 {
+    class LevelRepository <<Object>> {
+        + levels: List<LevelSettings>
+    }
 
-Engine -right-> Settings
-Engine -down-> CellModel
-Settings -down-> Topo
-Settings -down-> Shape
+    class Compression <<Utility>> {
+        + decompress(data: String): Int[][]
+    }
+}
 
-' Механики
-Engine ..> Comp : "Decompress board data"
-CellModel ..> Shape : "Calculate neighbors"
+' Связи между классами
+MainActivity .down.> MinesveeperViewModel : "Uses"
+MainActivity .right.> LevelSettings : "Configures"
 
-note right of Engine
-  Логика:
-  - Вес мин (1, 2, 3)
-  - Кастомные формы соседей
-  - Топология (зацикливание)
+MinesveeperViewModel "1" o-- "0..1" MinesveeperEngine : "Manages"
+MinesveeperViewModel .right.> Tool : "Uses"
+
+MinesveeperEngine "1" *-- "many" GameCell : "Composition (Field)"
+MinesveeperEngine "1" o-- "1" LevelSettings : "Strategy/Config"
+
+' Индикация проблемных зон (WIP)
+MainActivity -[#red]down-> LevelRepository : "!! Прямая зависимость"
+MinesveeperEngine -[#red].> Compression : "!! Legacy dependency"
+
+note bottom of MinesveeperEngine
+  В текущей реализации (WIP)
+  Engine инкапсулирует всю
+  математику весов и рекурсию.
 end note
 
 @enduml

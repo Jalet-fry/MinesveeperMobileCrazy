@@ -1,0 +1,68 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' Data Layer перенесен выше в коде
+package "Data Layer (Infra)" #FFF9C4 {
+    class LevelRepository <<Object>> {
+        + levels: List
+    }
+    class Compression <<Utility>>
+}
+
+' UI в центре
+package "Presentation Layer (UI)" #E1F5FE {
+    class MainActivity <<Activity>> {
+        - screenState: String
+        - customSettings: LevelSettings
+        + onCreate()
+    }
+
+    class MinesveeperViewModel <<ViewModel>> {
+        + engine: MinesveeperEngine?
+        + currentTool: Tool
+        + startLevel(settings)
+        + onCellClick(x, y)
+    }
+
+    enum Tool {
+        DIG
+        FLAG
+    }
+}
+
+' Domain справа/снизу
+package "Domain Layer (Logic)" #E8F5E9 {
+    class MinesveeperEngine {
+        + cells: GameCell[][]
+        + isGameOver: Boolean
+        + revealCell(x, y)
+        + toggleFlag(x, y)
+    }
+
+    class GameCell {
+        + mineValue: Int
+        + isRevealed: Boolean
+    }
+
+    class LevelSettings {
+        + rows: Int
+        + cols: Int
+    }
+}
+
+' Связи для центрирования UI
+MainActivity -down-> MinesveeperViewModel : "Controls"
+MinesveeperViewModel -right-> MinesveeperEngine : "Manages"
+MinesveeperViewModel -left-> Tool : "Uses"
+
+MinesveeperEngine *-down- GameCell : "Contains"
+MinesveeperEngine o-right- LevelSettings : "Configured by"
+
+' Нарушения (теперь они визуально "подтянуты" к Data сверху)
+MainActivity -[#red]up-> LevelRepository : "!! Прямой доступ"
+MinesveeperEngine -[#red]up-> Compression : "!! Грязная связь"
+
+@enduml
