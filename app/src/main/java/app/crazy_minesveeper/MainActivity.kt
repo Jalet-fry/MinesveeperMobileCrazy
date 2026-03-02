@@ -70,7 +70,12 @@ fun MainMenu(onStartCustom: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Crazy Minesweeper", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+//        Text("Crazy Minesweeper", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Crazy Minesweeper",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.Red
+        )
         Spacer(Modifier.height(32.dp))
         Button(onClick = onStartCustom, modifier = Modifier.width(200.dp)) {
             Text("NEW GAME")
