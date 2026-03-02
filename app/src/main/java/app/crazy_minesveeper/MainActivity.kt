@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -15,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.crazy_minesveeper.data.repository.LevelRepository
 import app.crazy_minesveeper.domain.model.LevelSettings
 import app.crazy_minesveeper.ui.MinesveeperScreen
 import app.crazy_minesveeper.ui.theme.Crazy_minesveeperTheme
@@ -81,6 +84,7 @@ fun CustomSettingsScreen(
     onStart: (LevelSettings) -> Unit,
     onBack: () -> Unit
 ) {
+    var title by remember { mutableStateOf(initialSettings.title) }
     var rows by remember { mutableStateOf(initialSettings.rows.toString()) }
     var cols by remember { mutableStateOf(initialSettings.cols.toString()) }
     var p1 by remember { mutableStateOf(initialSettings.p1.toString()) }
@@ -106,22 +110,64 @@ fun CustomSettingsScreen(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("SETTINGS", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("DIFFICULTY PRESETS", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        
+        // Автоматически подхватывает все уровни из репозитория
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(LevelRepository.levels) { level ->
+                OutlinedButton(
+                    onClick = {
+                        title = level.title
+                        rows = level.rows.toString()
+                        cols = level.cols.toString()
+                        p1 = level.p1.toString()
+                        p2 = level.p2.toString()
+                        p3 = level.p3.toString()
+                        pAnti = level.pAnti.toString()
+                        isChargeMode = level.isChargeMode
+                    },
+                    colors = if (title == level.title) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) 
+                             else ButtonDefaults.outlinedButtonColors()
+                ) {
+                    Text(level.title)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        HorizontalDivider()
+        Spacer(Modifier.height(16.dp))
+        
+        Text("CUSTOMIZE PARAMETERS", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(16.dp))
 
-        SettingField("Rows (5-50)", rows) { rows = it }
-        SettingField("Cols (5-50)", cols) { cols = it }
-        SettingField("Mines 1x % (Red)", p1) { p1 = it }
-        SettingField("Mines 2x % (Green)", p2) { p2 = it }
-        SettingField("Mines 3x % (Blue)", p3) { p3 = it }
-        SettingField("Mines -1x % (Anti)", pAnti) { pAnti = it }
+        SettingField("Rows (5-50)", rows) { 
+            rows = it
+            title = "Custom Game" // Сбрасываем название пресета при ручном вводе
+        }
+        SettingField("Cols (5-50)", cols) { 
+            cols = it
+            title = "Custom Game"
+        }
+        SettingField("Mines 1x % (Red)", p1) { p1 = it; title = "Custom Game" }
+        SettingField("Mines 2x % (Green)", p2) { p2 = it; title = "Custom Game" }
+        SettingField("Mines 3x % (Blue)", p3) { p3 = it; title = "Custom Game" }
+        SettingField("Mines -1x % (Anti)", pAnti) { pAnti = it; title = "Custom Game" }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         ) {
             Text("Charge Mode (Math logic)", modifier = Modifier.weight(1f))
-            Switch(checked = isChargeMode, onCheckedChange = { isChargeMode = it })
+            Switch(checked = isChargeMode, onCheckedChange = { 
+                isChargeMode = it
+                title = "Custom Game"
+            })
         }
 
         Spacer(Modifier.height(16.dp))
@@ -140,6 +186,7 @@ fun CustomSettingsScreen(
             Button(
                 onClick = {
                     onStart(LevelSettings(
+                        title = title,
                         rows = rowsValue,
                         cols = colsValue,
                         p1 = p1.toDoubleOrNull() ?: 10.0,

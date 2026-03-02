@@ -4,7 +4,9 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,10 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,6 +35,7 @@ fun MinesveeperScreen(
     onBack: () -> Unit,
     viewModel: MinesveeperViewModel = viewModel()
 ) {
+    // При первом входе или смене настроек - стартуем игру
     LaunchedEffect(levelSettings) {
         viewModel.startLevel(levelSettings)
     }
@@ -47,67 +48,135 @@ fun MinesveeperScreen(
     }
     
     val tick = viewModel.tick
+    val isPaused = viewModel.isPaused
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFBDBDBD)),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        MinesveeperHeader(engine)
-
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .clipToBounds()
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(0.5f, 5f)
-                        offset += pan
-                    }
-                }
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFBDBDBD))) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            MinesveeperHeader(engine, viewModel.currentTime, viewModel::togglePause)
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clipToBounds()
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            if (!isPaused) {
+                                scale = (scale * zoom).coerceIn(0.5f, 5f)
+                                offset += pan
+                            }
+                        }
+                    }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offset.x,
+                            translationY = offset.y
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    MinesveeperGrid(engine, tick, viewModel::onCellClick, viewModel::onCellLongClick)
+                }
+
+                // Кнопка сброса зума
+                IconButton(
+                    onClick = { scale = 1f; offset = Offset.Zero },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+                        .background(Color.White.copy(alpha = 0.5f), shape = CircleShape)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "Reset Zoom")
+                }
+            }
+
+            GameControls(
+                onBack = {
+                    viewModel.clearGame() // Уничтожаем игру при выходе
+                    onBack()
+                },
+                onRestart = viewModel::restart,
+                engine = engine,
+                currentTool = viewModel.currentTool,
+                onToolChange = viewModel::setTool
+            )
+        }
+
+        // Оверлей паузы
+        if (isPaused) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offset.x,
-                        translationY = offset.y
-                    ),
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .pointerInput(Unit) {}, // Блокируем клики по сетке
                 contentAlignment = Alignment.Center
             ) {
-                MinesveeperGrid(engine, tick, viewModel::onCellClick, viewModel::onCellLongClick)
-            }
-
-            IconButton(
-                onClick = { scale = 1f; offset = Offset.Zero },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-                    .background(Color.White.copy(alpha = 0.5f), shape = CircleShape)
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Reset")
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("PAUSED", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(24.dp))
+                        Button(
+                            onClick = viewModel::togglePause,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.PlayArrow, null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("RESUME")
+                        }
+                    }
+                }
             }
         }
-
-        GameControls(onBack, viewModel::restart, engine, viewModel.currentTool, viewModel::setTool)
     }
 }
 
 @Composable
-fun MinesveeperHeader(engine: MinesveeperEngine) {
+fun MinesveeperHeader(engine: MinesveeperEngine, timeMs: Long, onPause: () -> Unit) {
     Surface(tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(8.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             MineInfoItem(R.drawable.mine_r, engine.remainingMines[1] ?: 0)
             MineInfoItem(R.drawable.mine_g, engine.remainingMines[2] ?: 0)
+            
+            // Таймер
+            Text(
+                text = formatTime(timeMs),
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.DarkGray
+            )
+
             MineInfoItem(R.drawable.mine_b, engine.remainingMines[3] ?: 0)
-            MineInfoItem(R.drawable.mine_rx, engine.remainingMines[-1] ?: 0, Color.Blue)
+            
+            IconButton(onClick = onPause) {
+                Icon(painterResource(R.drawable.ic_launcher_background), "Pause", Modifier.size(24.dp)) // Заглушка иконки
+            }
         }
     }
+}
+
+private fun formatTime(ms: Long): String {
+    val totalSec = ms / 1000
+    val min = totalSec / 60
+    val sec = totalSec % 60
+    return "%02d:%02d".format(min, sec)
 }
 
 @Composable
@@ -115,7 +184,7 @@ fun MineInfoItem(iconRes: Int, count: Int, textColor: Color = Color.Red) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Image(painterResource(iconRes), null, Modifier.size(24.dp))
         Spacer(Modifier.width(4.dp))
-        Text(text = count.toString(), color = textColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = count.toString(), color = textColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
     }
 }
 
@@ -142,22 +211,15 @@ fun CellView(cell: GameCell, settings: LevelSettings, modifier: Modifier, onClic
         modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center
     ) {
-        // Фоновая картинка ячейки
         val bgRes = if (cell.isRevealed) R.drawable.ground else R.drawable.closed
         Image(painterResource(bgRes), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
 
-        // Подсветка для "автоматически открытых" клеток при проигрыше
         if (cell.isRevealed && !cell.revealedByPlayer) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(color = Color.Black.copy(alpha = 0.3f))
-            }
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black.copy(alpha = 0.3f)) }
         }
 
-        // Подсветка взорванной мины (на которую нажали)
         if (cell.isRevealed && cell.isMine && cell.revealedByPlayer) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(color = Color.Red.copy(alpha = 0.5f))
-            }
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Red.copy(alpha = 0.5f)) }
         }
 
         if (cell.isFlagged && !cell.isRevealed) {
@@ -166,66 +228,25 @@ fun CellView(cell: GameCell, settings: LevelSettings, modifier: Modifier, onClic
             if (cell.isMine) {
                 Image(painterResource(getMineRes(cell.mineValue)), null, Modifier.fillMaxSize(0.8f))
                 if (settings.isChargeMode) {
-                    Text(
-                        text = cell.mineValue.toString(),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
+                    Text(text = cell.mineValue.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             } else if (cell.adjacentSum != 0) {
                 val numRes = getNumRes(cell.adjacentSum)
                 if (numRes != 0) {
                     Image(painterResource(numRes), null, Modifier.fillMaxSize(0.7f))
                 } else {
-                    Text(
-                        text = cell.adjacentSum.toString(),
-                        fontWeight = FontWeight.Bold,
-                        color = getNumberColor(cell.adjacentSum),
-                        fontSize = 16.sp
-                    )
+                    Text(text = cell.adjacentSum.toString(), fontWeight = FontWeight.Bold, color = getNumberColor(cell.adjacentSum), fontSize = 16.sp)
                 }
             }
         }
     }
 }
 
-fun getMineRes(v: Int) = when(v) {
-    1 -> R.drawable.mine_r
-    2 -> R.drawable.mine_g
-    3 -> R.drawable.mine_b
-    -1 -> R.drawable.mine_rx
-    else -> R.drawable.mine_r
-}
-
-fun getFlagRes(v: Int) = when(v) {
-    1 -> R.drawable.flag_r
-    2 -> R.drawable.flag_final_2
-    3 -> R.drawable.flag_final_3
-    -1 -> R.drawable.flag_bx_final
-    else -> R.drawable.flag_r
-}
-
-fun getNumRes(n: Int): Int = when(n) {
-    1 -> R.drawable.numbers_num_1
-    2 -> R.drawable.numbers_num_2
-    3 -> R.drawable.numbers_num_3
-    4 -> R.drawable.numbers_num_4
-    5 -> R.drawable.numbers_num_5
-    6 -> R.drawable.numbers_num_6
-    7 -> R.drawable.numbers_num_7
-    8 -> R.drawable.numbers_num_8
-    9 -> R.drawable.numbers_num_9
-    else -> 0
-}
-
-fun getNumberColor(n: Int): Color = when {
-    n == 1 -> Color.Blue
-    n == 2 -> Color(0, 128, 0)
-    n >= 3 -> Color.Red
-    n < 0 -> Color(0, 0, 255)
-    else -> Color.Black
-}
+// Функции-мапперы (оставил без изменений для краткости)
+fun getMineRes(v: Int) = when(v) { 1 -> R.drawable.mine_r; 2 -> R.drawable.mine_g; 3 -> R.drawable.mine_b; -1 -> R.drawable.mine_rx; else -> R.drawable.mine_r }
+fun getFlagRes(v: Int) = when(v) { 1 -> R.drawable.flag_r; 2 -> R.drawable.flag_final_2; 3 -> R.drawable.flag_final_3; -1 -> R.drawable.flag_bx_final; else -> R.drawable.flag_r }
+fun getNumRes(n: Int): Int = when(n) { 1 -> R.drawable.numbers_num_1; 2 -> R.drawable.numbers_num_2; 3 -> R.drawable.numbers_num_3; 4 -> R.drawable.numbers_num_4; 5 -> R.drawable.numbers_num_5; 6 -> R.drawable.numbers_num_6; 7 -> R.drawable.numbers_num_7; 8 -> R.drawable.numbers_num_8; 9 -> R.drawable.numbers_num_9; else -> 0 }
+fun getNumberColor(n: Int): Color = when { n == 1 -> Color.Blue; n == 2 -> Color(0, 128, 0); n >= 3 -> Color.Red; n < 0 -> Color(0, 0, 255); else -> Color.Black }
 
 @Composable
 fun GameControls(onBack: () -> Unit, onRestart: () -> Unit, engine: MinesveeperEngine, currentTool: Tool, onToolChange: (Tool) -> Unit) {

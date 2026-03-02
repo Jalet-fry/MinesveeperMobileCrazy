@@ -24,14 +24,18 @@ class MinesveeperViewModel : ViewModel() {
     var currentTool by mutableStateOf(Tool.DIG)
         private set
 
+    var isPaused by mutableStateOf(false)
+        private set
+
     private var timerJob: Job? = null
     private var lastPausedTime: Long = 0
 
     fun startLevel(settings: LevelSettings) {
-        engine = null // Сбрасываем старый движок для UI
+        engine = null 
         stopTimer()
         currentTime = 0
         lastPausedTime = 0
+        isPaused = false
         
         val newEngine = MinesveeperEngine(settings)
         newEngine.onStateChanged = {
@@ -42,11 +46,30 @@ class MinesveeperViewModel : ViewModel() {
         tick++
     }
 
+    fun togglePause() {
+        if (engine?.isGameOver == true || engine?.isWin == true) return
+        isPaused = !isPaused
+        if (isPaused) {
+            stopTimer()
+        } else {
+            startTimer()
+        }
+    }
+
+    fun clearGame() {
+        stopTimer()
+        engine = null
+        isPaused = false
+        currentTime = 0
+        lastPausedTime = 0
+    }
+
     fun setTool(tool: Tool) {
         currentTool = tool
     }
 
     fun onCellClick(x: Int, y: Int) {
+        if (isPaused) return
         val eng = engine ?: return
         if (eng.isGameOver || eng.isWin) return
 
@@ -66,6 +89,7 @@ class MinesveeperViewModel : ViewModel() {
     }
 
     fun onCellLongClick(x: Int, y: Int) {
+        if (isPaused) return
         val eng = engine ?: return
         if (eng.isGameOver || eng.isWin) return
         eng.toggleFlag(x, y)
