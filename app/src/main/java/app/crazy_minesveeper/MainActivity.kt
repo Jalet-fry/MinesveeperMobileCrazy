@@ -72,9 +72,9 @@ fun MainMenu(onStartCustom: () -> Unit) {
     ) {
 //        Text("Crazy Minesweeper", fontSize = 32.sp, fontWeight = FontWeight.Bold)
         Text(
-            text = "Crazy Minesweeper",
+            text = "Сапер",
             style = MaterialTheme.typography.titleLarge,
-            color = Color.Red
+            color = Color.Black
         )
         Spacer(Modifier.height(32.dp))
         Button(onClick = onStartCustom, modifier = Modifier.width(200.dp)) {

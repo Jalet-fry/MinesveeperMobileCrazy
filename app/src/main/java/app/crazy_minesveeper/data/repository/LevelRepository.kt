@@ -27,26 +27,6 @@ object LevelRepository {
             p3 = 0.0,
             pAnti = 2.0,
             isChargeMode = true
-        ),
-        LevelSettings(
-            title = "Профи",
-            rows = 16,
-            cols = 20,
-            p1 = 15.0,
-            p2 = 5.0,
-            p3 = 2.0,
-            pAnti = 5.0,
-            isChargeMode = true
-        ),
-        LevelSettings(
-            title = "Безумие",
-            rows = 20,
-            cols = 30,
-            p1 = 10.0,
-            p2 = 10.0,
-            p3 = 10.0,
-            pAnti = 15.0,
-            isChargeMode = true
         )
     )
 
