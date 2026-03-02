@@ -35,7 +35,6 @@ fun MinesveeperScreen(
     onBack: () -> Unit,
     viewModel: MinesveeperViewModel = viewModel()
 ) {
-    // При первом входе или смене настроек - стартуем игру
     LaunchedEffect(levelSettings) {
         viewModel.startLevel(levelSettings)
     }
@@ -67,12 +66,13 @@ fun MinesveeperScreen(
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
                             if (!isPaused) {
-                                scale = (scale * zoom).coerceIn(0.5f, 5f)
+                                scale = (scale * zoom).coerceIn(0.2f, 5f) // Расширил диапазон зума для 50х50
                                 offset += pan
                             }
                         }
                     }
             ) {
+                // Контейнер для сетки
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -84,10 +84,16 @@ fun MinesveeperScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    MinesveeperGrid(engine, tick, viewModel::onCellClick, viewModel::onCellLongClick)
+                    // Используем wrapContentSize(unbounded = true), чтобы сетка не обрезалась краями Box при отрисовке
+                    MinesveeperGrid(
+                        engine = engine,
+                        tick = tick,
+                        onClick = viewModel::onCellClick,
+                        onLongClick = viewModel::onCellLongClick,
+                        modifier = Modifier.wrapContentSize(unbounded = true)
+                    )
                 }
 
-                // Кнопка сброса зума
                 IconButton(
                     onClick = { scale = 1f; offset = Offset.Zero },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
@@ -99,7 +105,7 @@ fun MinesveeperScreen(
 
             GameControls(
                 onBack = {
-                    viewModel.clearGame() // Уничтожаем игру при выходе
+                    viewModel.clearGame()
                     onBack()
                 },
                 onRestart = viewModel::restart,
@@ -109,29 +115,19 @@ fun MinesveeperScreen(
             )
         }
 
-        // Оверлей паузы
         if (isPaused) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .pointerInput(Unit) {}, // Блокируем клики по сетке
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).pointerInput(Unit) {},
                 contentAlignment = Alignment.Center
             ) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("PAUSED", fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(24.dp))
-                        Button(
-                            onClick = viewModel::togglePause,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        Button(onClick = viewModel::togglePause, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Default.PlayArrow, null)
                             Spacer(Modifier.width(8.dp))
                             Text("RESUME")
@@ -153,20 +149,10 @@ fun MinesveeperHeader(engine: MinesveeperEngine, timeMs: Long, onPause: () -> Un
         ) {
             MineInfoItem(R.drawable.mine_r, engine.remainingMines[1] ?: 0)
             MineInfoItem(R.drawable.mine_g, engine.remainingMines[2] ?: 0)
-            
-            // Таймер
-            Text(
-                text = formatTime(timeMs),
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.DarkGray
-            )
-
+            Text(text = formatTime(timeMs), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
             MineInfoItem(R.drawable.mine_b, engine.remainingMines[3] ?: 0)
-            
             IconButton(onClick = onPause) {
-                Icon(painterResource(R.drawable.ic_launcher_background), "Pause", Modifier.size(24.dp)) // Заглушка иконки
+                Icon(painterResource(R.drawable.ic_launcher_background), "Pause", Modifier.size(24.dp))
             }
         }
     }
@@ -189,10 +175,16 @@ fun MineInfoItem(iconRes: Int, count: Int, textColor: Color = Color.Red) {
 }
 
 @Composable
-fun MinesveeperGrid(engine: MinesveeperEngine, tick: Long, onClick: (Int, Int) -> Unit, onLongClick: (Int, Int) -> Unit) {
-    val cellSize = 32.dp
+fun MinesveeperGrid(
+    engine: MinesveeperEngine, 
+    tick: Long, 
+    onClick: (Int, Int) -> Unit, 
+    onLongClick: (Int, Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val cellSize = 24.dp 
     key(tick) {
-        Column(modifier = Modifier.border(2.dp, Color.Black)) {
+        Column(modifier = modifier.border(2.dp, Color.Black)) {
             for (y in 0 until engine.height) {
                 Row {
                     for (x in 0 until engine.width) {
@@ -228,21 +220,20 @@ fun CellView(cell: GameCell, settings: LevelSettings, modifier: Modifier, onClic
             if (cell.isMine) {
                 Image(painterResource(getMineRes(cell.mineValue)), null, Modifier.fillMaxSize(0.8f))
                 if (settings.isChargeMode) {
-                    Text(text = cell.mineValue.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(text = cell.mineValue.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
             } else if (cell.adjacentSum != 0) {
                 val numRes = getNumRes(cell.adjacentSum)
                 if (numRes != 0) {
                     Image(painterResource(numRes), null, Modifier.fillMaxSize(0.7f))
                 } else {
-                    Text(text = cell.adjacentSum.toString(), fontWeight = FontWeight.Bold, color = getNumberColor(cell.adjacentSum), fontSize = 16.sp)
+                    Text(text = cell.adjacentSum.toString(), fontWeight = FontWeight.Bold, color = getNumberColor(cell.adjacentSum), fontSize = 14.sp)
                 }
             }
         }
     }
 }
 
-// Функции-мапперы (оставил без изменений для краткости)
 fun getMineRes(v: Int) = when(v) { 1 -> R.drawable.mine_r; 2 -> R.drawable.mine_g; 3 -> R.drawable.mine_b; -1 -> R.drawable.mine_rx; else -> R.drawable.mine_r }
 fun getFlagRes(v: Int) = when(v) { 1 -> R.drawable.flag_r; 2 -> R.drawable.flag_final_2; 3 -> R.drawable.flag_final_3; -1 -> R.drawable.flag_bx_final; else -> R.drawable.flag_r }
 fun getNumRes(n: Int): Int = when(n) { 1 -> R.drawable.numbers_num_1; 2 -> R.drawable.numbers_num_2; 3 -> R.drawable.numbers_num_3; 4 -> R.drawable.numbers_num_4; 5 -> R.drawable.numbers_num_5; 6 -> R.drawable.numbers_num_6; 7 -> R.drawable.numbers_num_7; 8 -> R.drawable.numbers_num_8; 9 -> R.drawable.numbers_num_9; else -> 0 }
@@ -257,17 +248,14 @@ fun GameControls(onBack: () -> Unit, onRestart: () -> Unit, engine: MinesveeperE
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(onClick = onBack) { Text("Settings") }
-            
             Button(
                 onClick = { onToolChange(if (currentTool == Tool.DIG) Tool.FLAG else Tool.DIG) },
                 colors = ButtonDefaults.buttonColors(containerColor = if(currentTool == Tool.FLAG) Color.Red else Color.DarkGray)
             ) {
                 Text(if(currentTool == Tool.DIG) "Dig" else "Flag")
             }
-
             if (engine.isGameOver) Text("💀", fontSize = 24.sp)
             if (engine.isWin) Text("🏆", fontSize = 24.sp)
-
             Button(onClick = onRestart) { Text("Restart") }
         }
     }

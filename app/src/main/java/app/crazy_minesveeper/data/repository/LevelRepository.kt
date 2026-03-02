@@ -27,6 +27,16 @@ object LevelRepository {
             p3 = 0.0,
             pAnti = 2.0,
             isChargeMode = true
+        ),
+        LevelSettings(
+        title = "Профессионал",
+        rows = 16,
+        cols = 16,
+        p1 = 12.0,
+        p2 = 2.0,
+        p3 = 4.0,
+        pAnti = 2.0,
+        isChargeMode = true
         )
     )
 
