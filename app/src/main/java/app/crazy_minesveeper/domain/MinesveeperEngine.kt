@@ -62,6 +62,7 @@ class MinesveeperEngine(val settings: LevelSettings) {
         }
     }
 
+    // Внешний метод для вызова из UI
     fun revealCell(x: Int, y: Int) {
         if (isGameOver || isWin) return
         val cell = getCell(x, y) ?: return
@@ -70,30 +71,83 @@ class MinesveeperEngine(val settings: LevelSettings) {
         if (isFirstClick) {
             isFirstClick = false
             generateBoard(x, y)
-            updateRemainingCounts()
         }
 
-        cell.revealedByPlayer = true // Помечаем, что открыл игрок
+        revealRecursive(x, y)
+        
+        updateRemainingCounts()
+        if (!isGameOver) checkWin()
+        onStateChanged?.invoke()
+    }
 
+    // Внутренняя рекурсия без лишних уведомлений
+    private fun revealRecursive(x: Int, y: Int) {
+        val cell = getCell(x, y) ?: return
+        if (cell.isFlagged || cell.isRevealed) return
+
+        cell.revealedByPlayer = true
+        cell.isRevealed = true
+
+        /**
+         * ПИНГ-ПОНГ (Раунд 2 - ПОНГ Витовта)
+         * Тестируется тестом: `chord leads to game over if flag is wrong`
+         * Проверка: Срабатывает ли Game Over при вскрытии мины через аккорд.
+         */
         if (cell.isMine) { 
             isGameOver = true
-            revealAllField() // Открываем всё поле
-            onStateChanged?.invoke()
+            revealAllField()
             return
         }
-
-        cell.isRevealed = true
         
+        /**
+         * ПИНГ-ПОНГ (Раунд 4 - ПОНГ Витовта)
+         * Тестируется тестом: `revealRecursive opens empty area until it hits numbers`
+         * Проверка: Рекурсивный вызов для всех соседей, если ячейка полностью безопасна.
+         */
         if (isAreaAbsolutelySafe(x, y)) {
             for (i in -1..1) {
                 for (j in -1..1) {
-                    if (i != 0 || j != 0) revealCell(x + i, y + j)
+                    if (i != 0 || j != 0) revealRecursive(x + i, y + j)
                 }
             }
         }
-        
-        checkWin()
-        onStateChanged?.invoke()
+    }
+
+    /**
+     * Задача Витовта (Backend): Механика Аккорда
+     */
+    fun chord(x: Int, y: Int) {
+        if (isGameOver || isWin) return
+        val cell = getCell(x, y) ?: return
+        if (!cell.isRevealed || cell.adjacentSum == 0) return
+
+        var flagsCount = 0
+        for (i in -1..1) {
+            for (j in -1..1) {
+                if (getCell(x + i, y + j)?.isFlagged == true) flagsCount++
+            }
+        }
+
+        /**
+         * ПИНГ-ПОНГ (Раунд 2 - ПОНГ Витовта)
+         * Тестируется тестом: `chord does nothing if flags count is less than adjacentSum`
+         * Проверка: Аккорд срабатывает только при полном соответствии количества флагов цифре на клетке.
+         */
+        if (flagsCount == cell.adjacentSum) {
+            for (i in -1..1) {
+                for (j in -1..1) {
+                    if (i != 0 || j != 0) {
+                        val neighbor = getCell(x + i, y + j)
+                        if (neighbor != null && !neighbor.isFlagged && !neighbor.isRevealed) {
+                            revealRecursive(x + i, y + j)
+                        }
+                    }
+                }
+            }
+            updateRemainingCounts()
+            if (!isGameOver) checkWin()
+            onStateChanged?.invoke()
+        }
     }
 
     private fun isAreaAbsolutelySafe(x: Int, y: Int): Boolean {
@@ -106,6 +160,9 @@ class MinesveeperEngine(val settings: LevelSettings) {
         return true
     }
 
+    /**
+     * Задача Евгения (Backend): Безопасный старт
+     */
     private fun generateBoard(safeX: Int, safeY: Int) {
         val totalCells = width * height
         totalMines[1] = (totalCells * (settings.p1 / 100.0)).toInt()
@@ -119,7 +176,16 @@ class MinesveeperEngine(val settings: LevelSettings) {
                 val rx = Random.nextInt(width)
                 val ry = Random.nextInt(height)
                 val cell = cells[ry][rx]
-                if (cell.mineValue == 0 && (Math.abs(rx - safeX) > 1 || Math.abs(ry - safeY) > 1)) {
+                
+                // Гарантируем безопасность в радиусе 1 клетки (зона 3x3)
+                val isSafeZone = Math.abs(rx - safeX) <= 1 && Math.abs(ry - safeY) <= 1
+                
+                /**
+                 * ПИНГ-ПОНГ (Раунд 1 - ПОНГ Жеки)
+                 * Тестируется тестом: `first click creates safe zone 3x3`
+                 * Проверка: Генерация мин игнорирует область 3x3 вокруг первого клика.
+                 */
+                if (cell.mineValue == 0 && !isSafeZone) {
                     cell.mineValue = type
                     placed++
                 }
@@ -141,11 +207,12 @@ class MinesveeperEngine(val settings: LevelSettings) {
             for (j in -1..1) {
                 val cell = getCell(x + i, y + j) ?: continue
                 if (cell.isMine) {
-                    if (settings.isChargeMode) {
-                        result += cell.mineValue
-                    } else {
-                        result += 1
-                    }
+                    /**
+                     * ПИНГ-ПОНГ (Раунд 3 - ПОНГ Жеки)
+                     * Тестируется тестом: `adjacentSum logic with anti-mines`
+                     * Проверка: Учет веса мин (включая отрицательные) в режиме Charge Mode.
+                     */
+                    if (settings.isChargeMode) result += cell.mineValue else result += 1
                 }
             }
         }
@@ -162,6 +229,7 @@ class MinesveeperEngine(val settings: LevelSettings) {
     }
     
     private fun checkWin() {
+        if (isGameOver) return
         var revealedCount = 0
         var totalNonMines = 0
         cells.forEach { row ->
