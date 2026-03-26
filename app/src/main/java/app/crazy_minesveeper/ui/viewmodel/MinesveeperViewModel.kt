@@ -21,6 +21,9 @@ class MinesveeperViewModel : ViewModel() {
     var currentTime by mutableLongStateOf(0L)
         private set
 
+    var clickCount by mutableIntStateOf(0)
+        private set
+
     var currentTool by mutableStateOf(Tool.DIG)
         private set
 
@@ -35,6 +38,7 @@ class MinesveeperViewModel : ViewModel() {
         stopTimer()
         currentTime = 0
         lastPausedTime = 0
+        clickCount = 0
         isPaused = false
         
         val newEngine = MinesveeperEngine(settings)
@@ -62,6 +66,7 @@ class MinesveeperViewModel : ViewModel() {
         isPaused = false
         currentTime = 0
         lastPausedTime = 0
+        clickCount = 0
     }
 
     fun setTool(tool: Tool) {
@@ -78,7 +83,14 @@ class MinesveeperViewModel : ViewModel() {
         }
 
         if (currentTool == Tool.DIG) {
-            eng.revealCell(x, y)
+            val cell = eng.cells[y][x]
+            if (cell.isRevealed) {
+                // Если ячейка уже открыта — пробуем Аккорд (Chord)
+                eng.chord(x, y)
+            } else {
+                eng.revealCell(x, y)
+            }
+            clickCount++
         } else {
             eng.toggleFlag(x, y)
         }

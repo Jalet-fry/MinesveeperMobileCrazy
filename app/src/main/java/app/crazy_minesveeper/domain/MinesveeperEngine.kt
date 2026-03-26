@@ -88,22 +88,12 @@ class MinesveeperEngine(val settings: LevelSettings) {
         cell.revealedByPlayer = true
         cell.isRevealed = true
 
-        /**
-         * ПИНГ-ПОНГ (Раунд 2 - ПОНГ Витовта)
-         * Тестируется тестом: `chord leads to game over if flag is wrong`
-         * Проверка: Срабатывает ли Game Over при вскрытии мины через аккорд.
-         */
-        if (cell.isMine) { 
+        if (cell.isMine) {
             isGameOver = true
             revealAllField()
             return
         }
         
-        /**
-         * ПИНГ-ПОНГ (Раунд 4 - ПОНГ Витовта)
-         * Тестируется тестом: `revealRecursive opens empty area until it hits numbers`
-         * Проверка: Рекурсивный вызов для всех соседей, если ячейка полностью безопасна.
-         */
         if (isAreaAbsolutelySafe(x, y)) {
             for (i in -1..1) {
                 for (j in -1..1) {
@@ -128,11 +118,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
             }
         }
 
-        /**
-         * ПИНГ-ПОНГ (Раунд 2 - ПОНГ Витовта)
-         * Тестируется тестом: `chord does nothing if flags count is less than adjacentSum`
-         * Проверка: Аккорд срабатывает только при полном соответствии количества флагов цифре на клетке.
-         */
         if (flagsCount == cell.adjacentSum) {
             for (i in -1..1) {
                 for (j in -1..1) {
@@ -180,11 +165,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
                 // Гарантируем безопасность в радиусе 1 клетки (зона 3x3)
                 val isSafeZone = Math.abs(rx - safeX) <= 1 && Math.abs(ry - safeY) <= 1
                 
-                /**
-                 * ПИНГ-ПОНГ (Раунд 1 - ПОНГ Жеки)
-                 * Тестируется тестом: `first click creates safe zone 3x3`
-                 * Проверка: Генерация мин игнорирует область 3x3 вокруг первого клика.
-                 */
                 if (cell.mineValue == 0 && !isSafeZone) {
                     cell.mineValue = type
                     placed++
@@ -207,11 +187,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
             for (j in -1..1) {
                 val cell = getCell(x + i, y + j) ?: continue
                 if (cell.isMine) {
-                    /**
-                     * ПИНГ-ПОНГ (Раунд 3 - ПОНГ Жеки)
-                     * Тестируется тестом: `adjacentSum logic with anti-mines`
-                     * Проверка: Учет веса мин (включая отрицательные) в режиме Charge Mode.
-                     */
                     if (settings.isChargeMode) result += cell.mineValue else result += 1
                 }
             }

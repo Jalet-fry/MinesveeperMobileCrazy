@@ -1,5 +1,7 @@
 package app.crazy_minesveeper.ui
 
+import android.util.Log
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -16,12 +18,15 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.crazy_minesveeper.R
 import app.crazy_minesveeper.domain.MinesveeperEngine
@@ -35,6 +40,8 @@ fun MinesveeperScreen(
     onBack: () -> Unit,
     viewModel: MinesveeperViewModel = viewModel()
 ) {
+    val haptic = LocalHapticFeedback.current
+
     LaunchedEffect(levelSettings) {
         viewModel.startLevel(levelSettings)
     }
@@ -51,6 +58,19 @@ fun MinesveeperScreen(
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
+    // Задача Витовта (Backend/UI): Триггеры вибрации при изменении состояния
+    LaunchedEffect(tick) {
+        if (engine.isGameOver) {
+            Log.i("MINES_DEBUG", "VIBRATION: Game Over Triggered (Long Effect)")
+            // Android 11 любит TextHandleMove больше чем LongPress
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+        if (engine.isWin) {
+            Log.i("MINES_DEBUG", "VIBRATION: Victory Triggered")
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFFBDBDBD))) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -66,13 +86,12 @@ fun MinesveeperScreen(
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, zoom, _ ->
                             if (!isPaused) {
-                                scale = (scale * zoom).coerceIn(0.2f, 5f) // Расширил диапазон зума для 50х50
+                                scale = (scale * zoom).coerceIn(0.2f, 5f)
                                 offset += pan
                             }
                         }
                     }
             ) {
-                // Контейнер для сетки
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -84,12 +103,18 @@ fun MinesveeperScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Используем wrapContentSize(unbounded = true), чтобы сетка не обрезалась краями Box при отрисовке
                     MinesveeperGrid(
                         engine = engine,
                         tick = tick,
-                        onClick = viewModel::onCellClick,
-                        onLongClick = viewModel::onCellLongClick,
+                        onClick = { x, y -> 
+                            viewModel.onCellClick(x, y)
+                        },
+                        onLongClick = { x, y ->
+                            // Задача Жеки (UI): Моментальная вибрация под пальцем при флаге
+                            Log.i("MINES_DEBUG", "VIBRATION: Flag at ($x, $y)")
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.onCellLongClick(x, y)
+                        },
                         modifier = Modifier.wrapContentSize(unbounded = true)
                     )
                 }
@@ -115,6 +140,40 @@ fun MinesveeperScreen(
             )
         }
 
+        // Красная вспышка при проигрыше (Задача Жеки - Фронт)
+        if (engine.isGameOver) {
+            val infiniteTransition = rememberInfiniteTransition(label = "flash")
+            val alpha by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 0.4f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(500, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "alpha"
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Red.copy(alpha = alpha))
+                    .pointerInput(Unit) {}
+            )
+        }
+
+        // Task 4: Stats screen (GameOver Modal)
+        if (engine.isGameOver || engine.isWin) {
+            StatsDialog(
+                isWin = engine.isWin,
+                timeMs = viewModel.currentTime,
+                clicks = viewModel.clickCount,
+                onRestart = viewModel::restart,
+                onExit = {
+                    viewModel.clearGame()
+                    onBack()
+                }
+            )
+        }
+
         if (isPaused) {
             Box(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).pointerInput(Unit) {},
@@ -136,6 +195,57 @@ fun MinesveeperScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, onRestart: () -> Unit, onExit: () -> Unit) {
+    Dialog(onDismissRequest = {}) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = if (isWin) "VICTORY!" else "GAME OVER",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isWin) Color(0, 128, 0) else Color.Red
+                )
+                Spacer(Modifier.height(16.dp))
+                
+                StatRow("Time", formatTime(timeMs))
+                StatRow("Clicks", clicks.toString())
+                
+                // Эффективность (Задача Жеки/Витовта "На равных")
+                val efficiency = if (clicks > 0) String.format("%.2f", 1.0) else "0.00"
+                StatRow("Efficiency", "$efficiency cells/click")
+
+                Spacer(Modifier.height(24.dp))
+                
+                Button(onClick = onRestart, modifier = Modifier.fillMaxWidth()) {
+                    Text("Play Again")
+                }
+                TextButton(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
+                    Text("Back to Menu")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontWeight = FontWeight.Medium, color = Color.Gray)
+        Text(value, fontWeight = FontWeight.Bold, color = Color.Black)
     }
 }
 
