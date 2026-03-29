@@ -3,10 +3,13 @@ package app.crazy_minesveeper.ui.viewmodel
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.crazy_minesveeper.domain.FeedbackType
 import app.crazy_minesveeper.domain.MinesveeperEngine
 import app.crazy_minesveeper.domain.model.LevelSettings
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 enum class Tool { DIG, FLAG }
@@ -30,6 +33,9 @@ class MinesveeperViewModel : ViewModel() {
     var isPaused by mutableStateOf(false)
         private set
 
+    private val _feedbackFlow = MutableSharedFlow<FeedbackType>()
+    val feedbackFlow = _feedbackFlow.asSharedFlow()
+
     private var timerJob: Job? = null
     private var lastPausedTime: Long = 0
 
@@ -44,6 +50,11 @@ class MinesveeperViewModel : ViewModel() {
         val newEngine = MinesveeperEngine(settings)
         newEngine.onStateChanged = {
             tick++ 
+        }
+        newEngine.onFeedbackRequired = { type ->
+            viewModelScope.launch {
+                _feedbackFlow.emit(type)
+            }
         }
         
         engine = newEngine
@@ -85,7 +96,6 @@ class MinesveeperViewModel : ViewModel() {
         if (currentTool == Tool.DIG) {
             val cell = eng.cells[y][x]
             if (cell.isRevealed) {
-                // Если ячейка уже открыта — пробуем Аккорд (Chord)
                 eng.chord(x, y)
             } else {
                 eng.revealCell(x, y)
@@ -132,5 +142,11 @@ class MinesveeperViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         stopTimer()
+    }
+
+    // UX Improvement: Расчет реальной эффективности (вскрытых ячеек за один клик)
+    fun getEfficiency(): Double {
+        val revealed = engine?.getRevealedCount() ?: 0
+        return if (clickCount > 0) revealed.toDouble() / clickCount else 0.0
     }
 }

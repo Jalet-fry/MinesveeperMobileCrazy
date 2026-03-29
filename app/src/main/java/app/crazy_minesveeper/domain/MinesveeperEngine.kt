@@ -3,6 +3,10 @@ package app.crazy_minesveeper.domain
 import app.crazy_minesveeper.domain.model.*
 import kotlin.random.Random
 
+enum class FeedbackType {
+    REVEAL_EMPTY, MINE_EXPLODE, FLAG_SET, CHORD_SUCCESS, ERROR
+}
+
 class MinesveeperEngine(val settings: LevelSettings) {
     
     val width: Int = settings.width
@@ -17,6 +21,7 @@ class MinesveeperEngine(val settings: LevelSettings) {
     var remainingMines = mutableMapOf(1 to 0, 2 to 0, 3 to 0, -1 to 0)
 
     var onStateChanged: (() -> Unit)? = null
+    var onFeedbackRequired: ((FeedbackType) -> Unit)? = null
 
     private val activeFlagTypes: List<Int> by lazy {
         val list = mutableListOf<Int>()
@@ -37,17 +42,24 @@ class MinesveeperEngine(val settings: LevelSettings) {
         if (cell.isRevealed) return
         
         val current = cell.flaggedValue
-        if (current == 0) {
-            cell.flaggedValue = activeFlagTypes.firstOrNull() ?: 0
+        
+        // UX Improvement: Если тип мины один, переключаем мгновенно (0 -> Type -> 0)
+        if (activeFlagTypes.size == 1) {
+            cell.flaggedValue = if (current == 0) activeFlagTypes[0] else 0
         } else {
-            val idx = activeFlagTypes.indexOf(current)
-            if (idx == -1 || idx == activeFlagTypes.size - 1) {
-                cell.flaggedValue = 0
+            if (current == 0) {
+                cell.flaggedValue = activeFlagTypes.firstOrNull() ?: 0
             } else {
-                cell.flaggedValue = activeFlagTypes[idx + 1]
+                val idx = activeFlagTypes.indexOf(current)
+                if (idx == -1 || idx == activeFlagTypes.size - 1) {
+                    cell.flaggedValue = 0
+                } else {
+                    cell.flaggedValue = activeFlagTypes[idx + 1]
+                }
             }
         }
         
+        if (cell.isFlagged) onFeedbackRequired?.invoke(FeedbackType.FLAG_SET)
         updateRemainingCounts()
         onStateChanged?.invoke()
     }
@@ -62,7 +74,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
         }
     }
 
-    // Внешний метод для вызова из UI
     fun revealCell(x: Int, y: Int) {
         if (isGameOver || isWin) return
         val cell = getCell(x, y) ?: return
@@ -75,12 +86,17 @@ class MinesveeperEngine(val settings: LevelSettings) {
 
         revealRecursive(x, y)
         
+        if (isGameOver) {
+            onFeedbackRequired?.invoke(FeedbackType.MINE_EXPLODE)
+        } else {
+            onFeedbackRequired?.invoke(FeedbackType.REVEAL_EMPTY)
+        }
+
         updateRemainingCounts()
         if (!isGameOver) checkWin()
         onStateChanged?.invoke()
     }
 
-    // Внутренняя рекурсия без лишних уведомлений
     private fun revealRecursive(x: Int, y: Int) {
         val cell = getCell(x, y) ?: return
         if (cell.isFlagged || cell.isRevealed) return
@@ -103,9 +119,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
         }
     }
 
-    /**
-     * Задача Витовта (Backend): Механика Аккорда
-     */
     fun chord(x: Int, y: Int) {
         if (isGameOver || isWin) return
         val cell = getCell(x, y) ?: return
@@ -119,19 +132,30 @@ class MinesveeperEngine(val settings: LevelSettings) {
         }
 
         if (flagsCount == cell.adjacentSum) {
+            var revealedAny = false
             for (i in -1..1) {
                 for (j in -1..1) {
                     if (i != 0 || j != 0) {
                         val neighbor = getCell(x + i, y + j)
                         if (neighbor != null && !neighbor.isFlagged && !neighbor.isRevealed) {
                             revealRecursive(x + i, y + j)
+                            revealedAny = true
                         }
                     }
+                }
+            }
+            if (revealedAny) {
+                if (isGameOver) {
+                    onFeedbackRequired?.invoke(FeedbackType.MINE_EXPLODE)
+                } else {
+                    onFeedbackRequired?.invoke(FeedbackType.CHORD_SUCCESS)
                 }
             }
             updateRemainingCounts()
             if (!isGameOver) checkWin()
             onStateChanged?.invoke()
+        } else {
+            onFeedbackRequired?.invoke(FeedbackType.ERROR)
         }
     }
 
@@ -145,9 +169,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
         return true
     }
 
-    /**
-     * Задача Евгения (Backend): Безопасный старт
-     */
     private fun generateBoard(safeX: Int, safeY: Int) {
         val totalCells = width * height
         totalMines[1] = (totalCells * (settings.p1 / 100.0)).toInt()
@@ -162,7 +183,6 @@ class MinesveeperEngine(val settings: LevelSettings) {
                 val ry = Random.nextInt(height)
                 val cell = cells[ry][rx]
                 
-                // Гарантируем безопасность в радиусе 1 клетки (зона 3x3)
                 val isSafeZone = Math.abs(rx - safeX) <= 1 && Math.abs(ry - safeY) <= 1
                 
                 if (cell.mineValue == 0 && !isSafeZone) {
@@ -216,5 +236,12 @@ class MinesveeperEngine(val settings: LevelSettings) {
             }
         }
         if (revealedCount == totalNonMines && totalNonMines > 0) isWin = true
+    }
+
+    // Вспомогательный метод для подсчета вскрытых ячеек (для статистики)
+    fun getRevealedCount(): Int {
+        var count = 0
+        cells.forEach { row -> row.forEach { if (it.isRevealed && !it.isMine) count++ } }
+        return count
     }
 }

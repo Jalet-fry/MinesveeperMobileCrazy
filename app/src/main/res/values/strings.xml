@@ -1,3 +1,33 @@
 <resources>
-    <string name="app_name">Crazy_minesveeper</string>
+    <string name="app_name">Crazy Minesweeper</string>
+    <string name="game_over">GAME OVER</string>
+    <string name="victory">VICTORY!</string>
+    <string name="paused">PAUSED</string>
+    <string name="resume">RESUME</string>
+    <string name="restart">Restart</string>
+    <string name="play_again">Play Again</string>
+    <string name="back_to_menu">Back to Menu</string>
+    <string name="efficiency_label">Efficiency</string>
+    <string name="cells_per_click">cells/click</string>
+    <string name="settings_title">Settings</string>
+    <string name="tool_dig">Dig</string>
+    <string name="tool_flag">Flag</string>
+    <string name="stat_time">Time</string>
+    <string name="stat_clicks">Clicks</string>
+
+    <string name="new_game">NEW GAME</string>
+    <string name="difficulty_presets">DIFFICULTY PRESETS</string>
+    <string name="customize_parameters">CUSTOMIZE PARAMETERS</string>
+    <string name="rows_label">Rows (5-50)</string>
+    <string name="cols_label">Cols (5-50)</string>
+    <string name="mine_1x_label">Mines 1x %% (Red)</string>
+    <string name="mine_2x_label">Mines 2x %% (Green)</string>
+    <string name="mine_3x_label">Mines 3x %% (Blue)</string>
+    <string name="mine_anti_label">Mines -1x %% (Anti)</string>
+    <string name="charge_mode_label">Charge Mode (Math logic)</string>
+    <string name="total_mines_label">Total Mines: %s%%</string>
+    <string name="back_button">BACK</string>
+    <string name="start_button">START</string>
+    <string name="custom_game_title">Custom Game</string>
+    <string name="reset_zoom_desc">Reset Zoom</string>
 </resources>

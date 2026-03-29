@@ -23,12 +23,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.crazy_minesveeper.R
+import app.crazy_minesveeper.domain.FeedbackType
 import app.crazy_minesveeper.domain.MinesveeperEngine
 import app.crazy_minesveeper.domain.model.*
 import app.crazy_minesveeper.ui.viewmodel.MinesveeperViewModel
@@ -58,16 +60,16 @@ fun MinesveeperScreen(
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
 
-    // Задача Витовта (Backend/UI): Триггеры вибрации при изменении состояния
-    LaunchedEffect(tick) {
-        if (engine.isGameOver) {
-            Log.i("MINES_DEBUG", "VIBRATION: Game Over Triggered (Long Effect)")
-            // Android 11 любит TextHandleMove больше чем LongPress
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        }
-        if (engine.isWin) {
-            Log.i("MINES_DEBUG", "VIBRATION: Victory Triggered")
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    LaunchedEffect(Unit) {
+        viewModel.feedbackFlow.collect { type ->
+            Log.d("UX_DEBUG", "Feedback triggered: $type")
+            when (type) {
+                FeedbackType.FLAG_SET -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                FeedbackType.MINE_EXPLODE -> haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                FeedbackType.CHORD_SUCCESS -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                FeedbackType.ERROR -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                FeedbackType.REVEAL_EMPTY -> {} 
+            }
         }
     }
 
@@ -110,9 +112,6 @@ fun MinesveeperScreen(
                             viewModel.onCellClick(x, y)
                         },
                         onLongClick = { x, y ->
-                            // Задача Жеки (UI): Моментальная вибрация под пальцем при флаге
-                            Log.i("MINES_DEBUG", "VIBRATION: Flag at ($x, $y)")
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.onCellLongClick(x, y)
                         },
                         modifier = Modifier.wrapContentSize(unbounded = true)
@@ -140,7 +139,6 @@ fun MinesveeperScreen(
             )
         }
 
-        // Красная вспышка при проигрыше (Задача Жеки - Фронт)
         if (engine.isGameOver) {
             val infiniteTransition = rememberInfiniteTransition(label = "flash")
             val alpha by infiniteTransition.animateFloat(
@@ -160,12 +158,12 @@ fun MinesveeperScreen(
             )
         }
 
-        // Task 4: Stats screen (GameOver Modal)
         if (engine.isGameOver || engine.isWin) {
             StatsDialog(
                 isWin = engine.isWin,
                 timeMs = viewModel.currentTime,
                 clicks = viewModel.clickCount,
+                efficiency = viewModel.getEfficiency(),
                 onRestart = viewModel::restart,
                 onExit = {
                     viewModel.clearGame()
@@ -184,12 +182,12 @@ fun MinesveeperScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("PAUSED", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.paused), fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(24.dp))
                         Button(onClick = viewModel::togglePause, modifier = Modifier.fillMaxWidth()) {
                             Icon(Icons.Default.PlayArrow, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("RESUME")
+                            Text(stringResource(R.string.resume))
                         }
                     }
                 }
@@ -199,7 +197,7 @@ fun MinesveeperScreen(
 }
 
 @Composable
-fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, onRestart: () -> Unit, onExit: () -> Unit) {
+fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, efficiency: Double, onRestart: () -> Unit, onExit: () -> Unit) {
     Dialog(onDismissRequest = {}) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -211,27 +209,25 @@ fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, onRestart: () -> Unit
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = if (isWin) "VICTORY!" else "GAME OVER",
+                    text = if (isWin) stringResource(R.string.victory) else stringResource(R.string.game_over),
                     fontSize = 28.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = if (isWin) Color(0, 128, 0) else Color.Red
                 )
                 Spacer(Modifier.height(16.dp))
                 
-                StatRow("Time", formatTime(timeMs))
-                StatRow("Clicks", clicks.toString())
+                StatRow(stringResource(R.string.stat_time), formatTime(timeMs))
+                StatRow(stringResource(R.string.stat_clicks), clicks.toString())
                 
-                // Эффективность (Задача Жеки/Витовта "На равных")
-                val efficiency = if (clicks > 0) String.format("%.2f", 1.0) else "0.00"
-                StatRow("Efficiency", "$efficiency cells/click")
+                StatRow(stringResource(R.string.efficiency_label), String.format("%.2f", efficiency) + " " + stringResource(R.string.cells_per_click))
 
                 Spacer(Modifier.height(24.dp))
                 
                 Button(onClick = onRestart, modifier = Modifier.fillMaxWidth()) {
-                    Text("Play Again")
+                    Text(stringResource(R.string.play_again))
                 }
                 TextButton(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
-                    Text("Back to Menu")
+                    Text(stringResource(R.string.back_to_menu))
                 }
             }
         }
@@ -357,16 +353,16 @@ fun GameControls(onBack: () -> Unit, onRestart: () -> Unit, engine: MinesveeperE
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text("Settings") }
+            Button(onClick = onBack) { Text(stringResource(R.string.settings_title)) }
             Button(
                 onClick = { onToolChange(if (currentTool == Tool.DIG) Tool.FLAG else Tool.DIG) },
                 colors = ButtonDefaults.buttonColors(containerColor = if(currentTool == Tool.FLAG) Color.Red else Color.DarkGray)
             ) {
-                Text(if(currentTool == Tool.DIG) "Dig" else "Flag")
+                Text(if(currentTool == Tool.DIG) stringResource(R.string.tool_dig) else stringResource(R.string.tool_flag))
             }
             if (engine.isGameOver) Text("💀", fontSize = 24.sp)
             if (engine.isWin) Text("🏆", fontSize = 24.sp)
-            Button(onClick = onRestart) { Text("Restart") }
+            Button(onClick = onRestart) { Text(stringResource(R.string.restart)) }
         }
     }
 }
