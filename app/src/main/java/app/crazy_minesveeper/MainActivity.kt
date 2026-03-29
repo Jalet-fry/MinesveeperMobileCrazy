@@ -14,22 +14,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.crazy_minesveeper.data.repository.LevelRepository
+import app.crazy_minesveeper.data.repository.GameRepositoryImpl
 import app.crazy_minesveeper.domain.model.LevelSettings
+import app.crazy_minesveeper.domain.repository.IGameRepository
 import app.crazy_minesveeper.ui.MinesveeperScreen
 import app.crazy_minesveeper.ui.theme.Crazy_minesveeperTheme
 
 class MainActivity : ComponentActivity() {
+    private val gameRepository: IGameRepository = GameRepositoryImpl()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             Crazy_minesveeperTheme {
                 var screenState by remember { mutableStateOf("menu") }
-                var customSettings by remember { mutableStateOf(LevelSettings()) }
+                var customSettings by remember { mutableStateOf(gameRepository.getDefaultLevel()) }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
@@ -42,6 +46,7 @@ class MainActivity : ComponentActivity() {
                             "settings" -> {
                                 CustomSettingsScreen(
                                     initialSettings = customSettings,
+                                    repository = gameRepository,
                                     onStart = {
                                         customSettings = it
                                         screenState = "game"
@@ -70,9 +75,8 @@ fun MainMenu(onStartCustom: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-//        Text("Crazy Minesweeper", fontSize = 32.sp, fontWeight = FontWeight.Bold)
         Text(
-            text = "Сапер",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.titleLarge,
             color = Color.Black
         )
@@ -86,6 +90,7 @@ fun MainMenu(onStartCustom: () -> Unit) {
 @Composable
 fun CustomSettingsScreen(
     initialSettings: LevelSettings,
+    repository: IGameRepository,
     onStart: (LevelSettings) -> Unit,
     onBack: () -> Unit
 ) {
@@ -118,13 +123,12 @@ fun CustomSettingsScreen(
         Text("DIFFICULTY PRESETS", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(8.dp))
         
-        // Автоматически подхватывает все уровни из репозитория
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 4.dp)
         ) {
-            items(LevelRepository.levels) { level ->
+            items(repository.getLevels()) { level ->
                 OutlinedButton(
                     onClick = {
                         title = level.title
@@ -153,7 +157,7 @@ fun CustomSettingsScreen(
 
         SettingField("Rows (5-50)", rows) { 
             rows = it
-            title = "Custom Game" // Сбрасываем название пресета при ручном вводе
+            title = "Custom Game"
         }
         SettingField("Cols (5-50)", cols) { 
             cols = it
