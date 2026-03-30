@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -33,6 +34,8 @@ import app.crazy_minesveeper.R
 import app.crazy_minesveeper.domain.FeedbackType
 import app.crazy_minesveeper.domain.MinesveeperEngine
 import app.crazy_minesveeper.domain.model.*
+import app.crazy_minesveeper.ui.theme.MineNumberStyle
+import app.crazy_minesveeper.ui.theme.*
 import app.crazy_minesveeper.ui.viewmodel.MinesveeperViewModel
 import app.crazy_minesveeper.ui.viewmodel.Tool
 
@@ -43,6 +46,7 @@ fun MinesveeperScreen(
     viewModel: MinesveeperViewModel = viewModel()
 ) {
     val haptic = LocalHapticFeedback.current
+    val skin = LocalGameSkin.current
 
     LaunchedEffect(levelSettings) {
         viewModel.startLevel(levelSettings)
@@ -62,7 +66,6 @@ fun MinesveeperScreen(
 
     LaunchedEffect(Unit) {
         viewModel.feedbackFlow.collect { type ->
-            Log.d("UX_DEBUG", "Feedback triggered: $type")
             when (type) {
                 FeedbackType.FLAG_SET -> haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 FeedbackType.MINE_EXPLODE -> haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -73,7 +76,7 @@ fun MinesveeperScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFBDBDBD))) {
+    Box(modifier = Modifier.fillMaxSize().background(skin.mainBackground)) {
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -121,9 +124,9 @@ fun MinesveeperScreen(
                 IconButton(
                     onClick = { scale = 1f; offset = Offset.Zero },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
-                        .background(Color.White.copy(alpha = 0.5f), shape = CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f), shape = CircleShape)
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Reset Zoom")
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.reset_zoom_desc))
                 }
             }
 
@@ -178,13 +181,13 @@ fun MinesveeperScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.paused), fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.paused), style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(24.dp))
-                        Button(onClick = viewModel::togglePause, modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = viewModel::togglePause, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                             Icon(Icons.Default.PlayArrow, null)
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.resume))
@@ -200,8 +203,8 @@ fun MinesveeperScreen(
 fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, efficiency: Double, onRestart: () -> Unit, onExit: () -> Unit) {
     Dialog(onDismissRequest = {}) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
             Column(
@@ -210,20 +213,18 @@ fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, efficiency: Double, o
             ) {
                 Text(
                     text = if (isWin) stringResource(R.string.victory) else stringResource(R.string.game_over),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isWin) Color(0, 128, 0) else Color.Red
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = if (isWin) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 
                 StatRow(stringResource(R.string.stat_time), formatTime(timeMs))
                 StatRow(stringResource(R.string.stat_clicks), clicks.toString())
-                
                 StatRow(stringResource(R.string.efficiency_label), String.format("%.2f", efficiency) + " " + stringResource(R.string.cells_per_click))
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(32.dp))
                 
-                Button(onClick = onRestart, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onRestart, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                     Text(stringResource(R.string.play_again))
                 }
                 TextButton(onClick = onExit, modifier = Modifier.fillMaxWidth()) {
@@ -237,28 +238,43 @@ fun StatsDialog(isWin: Boolean, timeMs: Long, clicks: Int, efficiency: Double, o
 @Composable
 fun StatRow(label: String, value: String) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, fontWeight = FontWeight.Medium, color = Color.Gray)
-        Text(value, fontWeight = FontWeight.Bold, color = Color.Black)
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun MinesveeperHeader(engine: MinesveeperEngine, timeMs: Long, onPause: () -> Unit) {
-    Surface(tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
+    val skin = LocalGameSkin.current
+    Surface(
+        tonalElevation = 4.dp, 
+        modifier = Modifier.fillMaxWidth(),
+        color = skin.panelBackground
+    ) {
         Row(
-            modifier = Modifier.padding(8.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MineInfoItem(R.drawable.mine_r, engine.remainingMines[1] ?: 0)
-            MineInfoItem(R.drawable.mine_g, engine.remainingMines[2] ?: 0)
-            Text(text = formatTime(timeMs), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.DarkGray)
-            MineInfoItem(R.drawable.mine_b, engine.remainingMines[3] ?: 0)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                MineInfoItem(R.drawable.mine_r, engine.remainingMines[1] ?: 0, getNumberColor(3, skin))
+                Spacer(Modifier.width(8.dp))
+                MineInfoItem(R.drawable.mine_g, engine.remainingMines[2] ?: 0, getNumberColor(2, skin))
+                Spacer(Modifier.width(8.dp))
+                MineInfoItem(R.drawable.mine_b, engine.remainingMines[3] ?: 0, getNumberColor(1, skin))
+            }
+            
+            Text(
+                text = formatTime(timeMs), 
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = 18.sp),
+                color = if (skin.isDark) Color.White else MaterialTheme.colorScheme.primary
+            )
+            
             IconButton(onClick = onPause) {
-                Icon(painterResource(R.drawable.ic_launcher_background), "Pause", Modifier.size(24.dp))
+                Icon(Icons.Default.PlayArrow, "Pause", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.scale(1.2f))
             }
         }
     }
@@ -272,11 +288,11 @@ private fun formatTime(ms: Long): String {
 }
 
 @Composable
-fun MineInfoItem(iconRes: Int, count: Int, textColor: Color = Color.Red) {
+fun MineInfoItem(iconRes: Int, count: Int, textColor: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painterResource(iconRes), null, Modifier.size(24.dp))
+        Image(painterResource(iconRes), null, Modifier.size(20.dp))
         Spacer(Modifier.width(4.dp))
-        Text(text = count.toString(), color = textColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(text = count.toString(), color = textColor, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
     }
 }
 
@@ -288,9 +304,10 @@ fun MinesveeperGrid(
     onLongClick: (Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cellSize = 24.dp 
+    val cellSize = 28.dp 
+    val skin = LocalGameSkin.current
     key(tick) {
-        Column(modifier = modifier.border(2.dp, Color.Black)) {
+        Column(modifier = modifier.border(1.dp, skin.gridBorder)) {
             for (y in 0 until engine.height) {
                 Row {
                     for (x in 0 until engine.width) {
@@ -305,35 +322,49 @@ fun MinesveeperGrid(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CellView(cell: GameCell, settings: LevelSettings, modifier: Modifier, onClick: () -> Unit, onLongClick: () -> Unit) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (isPressed) 0.92f else 1f, label = "cellPress")
+    val skin = LocalGameSkin.current
+
     Box(
-        modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        modifier = modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .combinedClickable(
+                onClick = onClick, 
+                onLongClick = onLongClick,
+                onLongClickLabel = "Flag"
+            ),
         contentAlignment = Alignment.Center
     ) {
         val bgRes = if (cell.isRevealed) R.drawable.ground else R.drawable.closed
         Image(painterResource(bgRes), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
 
         if (cell.isRevealed && !cell.revealedByPlayer) {
-            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black.copy(alpha = 0.3f)) }
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black.copy(alpha = 0.2f)) }
         }
 
         if (cell.isRevealed && cell.isMine && cell.revealedByPlayer) {
-            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Red.copy(alpha = 0.5f)) }
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Red.copy(alpha = 0.4f)) }
         }
 
         if (cell.isFlagged && !cell.isRevealed) {
-            Image(painterResource(getFlagRes(cell.flaggedValue)), null, Modifier.fillMaxSize(0.8f))
+            Image(painterResource(getFlagRes(cell.flaggedValue)), null, Modifier.fillMaxSize(0.75f))
         } else if (cell.isRevealed) {
             if (cell.isMine) {
-                Image(painterResource(getMineRes(cell.mineValue)), null, Modifier.fillMaxSize(0.8f))
+                Image(painterResource(getMineRes(cell.mineValue)), null, Modifier.fillMaxSize(0.7f))
                 if (settings.isChargeMode) {
-                    Text(text = cell.mineValue.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text(text = cell.mineValue.toString(), color = Color.White, style = MineNumberStyle.copy(fontSize = 10.sp))
                 }
             } else if (cell.adjacentSum != 0) {
                 val numRes = getNumRes(cell.adjacentSum)
                 if (numRes != 0) {
-                    Image(painterResource(numRes), null, Modifier.fillMaxSize(0.7f))
+                    Image(painterResource(numRes), null, Modifier.fillMaxSize(0.65f))
                 } else {
-                    Text(text = cell.adjacentSum.toString(), fontWeight = FontWeight.Bold, color = getNumberColor(cell.adjacentSum), fontSize = 14.sp)
+                    Text(
+                        text = cell.adjacentSum.toString(), 
+                        style = MineNumberStyle,
+                        color = getNumberColor(cell.adjacentSum, skin)
+                    )
                 }
             }
         }
@@ -343,25 +374,45 @@ fun CellView(cell: GameCell, settings: LevelSettings, modifier: Modifier, onClic
 fun getMineRes(v: Int) = when(v) { 1 -> R.drawable.mine_r; 2 -> R.drawable.mine_g; 3 -> R.drawable.mine_b; -1 -> R.drawable.mine_rx; else -> R.drawable.mine_r }
 fun getFlagRes(v: Int) = when(v) { 1 -> R.drawable.flag_r; 2 -> R.drawable.flag_final_2; 3 -> R.drawable.flag_final_3; -1 -> R.drawable.flag_bx_final; else -> R.drawable.flag_r }
 fun getNumRes(n: Int): Int = when(n) { 1 -> R.drawable.numbers_num_1; 2 -> R.drawable.numbers_num_2; 3 -> R.drawable.numbers_num_3; 4 -> R.drawable.numbers_num_4; 5 -> R.drawable.numbers_num_5; 6 -> R.drawable.numbers_num_6; 7 -> R.drawable.numbers_num_7; 8 -> R.drawable.numbers_num_8; 9 -> R.drawable.numbers_num_9; else -> 0 }
-fun getNumberColor(n: Int): Color = when { n == 1 -> Color.Blue; n == 2 -> Color(0, 128, 0); n >= 3 -> Color.Red; n < 0 -> Color(0, 0, 255); else -> Color.Black }
+
+fun getNumberColor(n: Int, skin: GameSkin): Color {
+    if (n < 0) return skin.mineAnti
+    val index = n - 1
+    return if (index in skin.numColors.indices) {
+        skin.numColors[index]
+    } else {
+        if (skin.isDark) Color.White else Color.Black
+    }
+}
 
 @Composable
 fun GameControls(onBack: () -> Unit, onRestart: () -> Unit, engine: MinesveeperEngine, currentTool: Tool, onToolChange: (Tool) -> Unit) {
-    Surface(tonalElevation = 8.dp, modifier = Modifier.fillMaxWidth()) {
+    val skin = LocalGameSkin.current
+    Surface(
+        tonalElevation = 8.dp, 
+        modifier = Modifier.fillMaxWidth(),
+        color = skin.panelBackground
+    ) {
         Row(
-            modifier = Modifier.padding(8.dp).fillMaxWidth(),
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onBack) { Text(stringResource(R.string.settings_title)) }
-            Button(
+            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.settings_title)) }
+            
+            FilledTonalButton(
                 onClick = { onToolChange(if (currentTool == Tool.DIG) Tool.FLAG else Tool.DIG) },
-                colors = ButtonDefaults.buttonColors(containerColor = if(currentTool == Tool.FLAG) Color.Red else Color.DarkGray)
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if(currentTool == Tool.FLAG) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer
+                )
             ) {
                 Text(if(currentTool == Tool.DIG) stringResource(R.string.tool_dig) else stringResource(R.string.tool_flag))
             }
-            if (engine.isGameOver) Text("💀", fontSize = 24.sp)
-            if (engine.isWin) Text("🏆", fontSize = 24.sp)
+            
+            if (engine.isGameOver || engine.isWin) {
+                Text(if (engine.isWin) "🏆" else "💀", fontSize = 28.sp)
+            }
+
             Button(onClick = onRestart) { Text(stringResource(R.string.restart)) }
         }
     }

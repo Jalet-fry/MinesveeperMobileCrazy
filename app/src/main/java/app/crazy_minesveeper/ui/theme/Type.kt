@@ -16,10 +16,22 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     ),
     titleLarge = TextStyle(
-    fontFamily = FontFamily.Monospace,
-    fontWeight = FontWeight.ExtraBold,
-    fontSize = 50.sp,
-    lineHeight = 50.sp,
-    letterSpacing = 0.5.sp
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.ExtraBold,
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+        letterSpacing = 0.5.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp
     )
+)
+
+// Custom style for game numbers to ensure perfect centering and readability
+val MineNumberStyle = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.Black,
+    fontSize = 16.sp
 )

@@ -4,18 +4,49 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.crazy_minesveeper.data.repository.GameRepositoryImpl
@@ -23,6 +54,9 @@ import app.crazy_minesveeper.domain.model.LevelSettings
 import app.crazy_minesveeper.domain.repository.IGameRepository
 import app.crazy_minesveeper.ui.MinesveeperScreen
 import app.crazy_minesveeper.ui.theme.Crazy_minesveeperTheme
+import app.crazy_minesveeper.ui.theme.GameSkin
+import app.crazy_minesveeper.ui.theme.GameSkins
+import app.crazy_minesveeper.ui.theme.LocalGameSkin
 
 class MainActivity : ComponentActivity() {
     private val gameRepository: IGameRepository = GameRepositoryImpl()
@@ -31,15 +65,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            Crazy_minesveeperTheme {
+            var currentSkin by remember { mutableStateOf(GameSkins.ClassicRetro) }
+            
+            Crazy_minesveeperTheme(skin = currentSkin) {
                 var screenState by remember { mutableStateOf("menu") }
                 var customSettings by remember { mutableStateOf(gameRepository.getDefaultLevel()) }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
+                    Box(modifier = Modifier.padding(innerPadding).background(currentSkin.mainBackground)) {
                         when (screenState) {
                             "menu" -> {
                                 MainMenu(
+                                    currentSkin = currentSkin,
+                                    onSkinChange = { currentSkin = it },
                                     onStartCustom = { screenState = "settings" }
                                 )
                             }
@@ -69,7 +107,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainMenu(onStartCustom: () -> Unit) {
+fun MainMenu(
+    currentSkin: GameSkin,
+    onSkinChange: (GameSkin) -> Unit,
+    onStartCustom: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -78,12 +120,87 @@ fun MainMenu(onStartCustom: () -> Unit) {
         Text(
             text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.titleLarge,
-            color = Color.Black
+            color = if (currentSkin.isDark) Color.White else Color.Black
         )
-        Spacer(Modifier.height(32.dp))
-        Button(onClick = onStartCustom, modifier = Modifier.width(200.dp)) {
-            Text("NEW GAME")
+        
+        Spacer(Modifier.height(48.dp))
+        
+        Text(
+            "SELECT SKIN",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (currentSkin.isDark) Color.Gray else Color.DarkGray
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(GameSkins.allSkins) { skin ->
+                SkinThumbnail(
+                    skin = skin,
+                    isSelected = skin.id == currentSkin.id,
+                    onClick = { onSkinChange(skin) }
+                )
+            }
         }
+
+        Spacer(Modifier.height(48.dp))
+        
+        Button(
+            onClick = onStartCustom,
+            modifier = Modifier.width(240.dp).height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = currentSkin.panelBackground,
+                contentColor = if (currentSkin.isDark) Color.White else Color.Black
+            )
+        ) {
+            Text(stringResource(R.string.new_game), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
+    }
+}
+
+@Composable
+fun SkinThumbnail(skin: GameSkin, isSelected: Boolean, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(8.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(skin.mainBackground)
+                .border(
+                    width = if (isSelected) 3.dp else 1.dp,
+                    color = if (isSelected) Color.Cyan else skin.gridBorder,
+                    shape = RoundedCornerShape(12.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Preview of grid
+            Column {
+                Row {
+                    Box(Modifier.size(15.dp).background(skin.cellClosed).border(0.5.dp, skin.gridBorder))
+                    Box(Modifier.size(15.dp).background(skin.cellOpened).border(0.5.dp, skin.gridBorder))
+                }
+                Row {
+                    Box(Modifier.size(15.dp).background(skin.cellOpened).border(0.5.dp, skin.gridBorder))
+                    Box(Modifier.size(15.dp).background(skin.cellClosed).border(0.5.dp, skin.gridBorder))
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            skin.name.split(" ").first(),
+            fontSize = 10.sp,
+            color = if (isSelected) Color.Cyan else Color.Gray
+        )
     }
 }
 
@@ -94,6 +211,7 @@ fun CustomSettingsScreen(
     onStart: (LevelSettings) -> Unit,
     onBack: () -> Unit
 ) {
+    val skin = LocalGameSkin.current
     var title by remember { mutableStateOf(initialSettings.title) }
     var rows by remember { mutableStateOf(initialSettings.rows.toString()) }
     var cols by remember { mutableStateOf(initialSettings.cols.toString()) }
@@ -120,7 +238,12 @@ fun CustomSettingsScreen(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("DIFFICULTY PRESETS", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            stringResource(R.string.difficulty_presets),
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (skin.isDark) Color.White else Color.Black
+        )
         Spacer(Modifier.height(8.dp))
         
         LazyRow(
@@ -140,62 +263,57 @@ fun CustomSettingsScreen(
                         pAnti = level.pAnti.toString()
                         isChargeMode = level.isChargeMode
                     },
-                    colors = if (title == level.title) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) 
-                             else ButtonDefaults.outlinedButtonColors()
+                    colors = if (title == level.title) ButtonDefaults.outlinedButtonColors(containerColor = skin.panelBackground.copy(alpha = 0.3f)) 
+                             else ButtonDefaults.outlinedButtonColors(),
+                    border = BorderStroke(1.dp, if (title == level.title) Color.Cyan else skin.gridBorder)
                 ) {
-                    Text(level.title)
+                    Text(level.title, color = if (skin.isDark) Color.White else Color.Black)
                 }
             }
         }
 
         Spacer(Modifier.height(24.dp))
-        HorizontalDivider()
+        HorizontalDivider(color = skin.gridBorder)
         Spacer(Modifier.height(16.dp))
         
-        Text("CUSTOMIZE PARAMETERS", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.customize_parameters), fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = if (skin.isDark) Color.White else Color.Black)
         Spacer(Modifier.height(16.dp))
 
-        SettingField("Rows (5-50)", rows) { 
-            rows = it
-            title = "Custom Game"
-        }
-        SettingField("Cols (5-50)", cols) { 
-            cols = it
-            title = "Custom Game"
-        }
-        SettingField("Mines 1x % (Red)", p1) { p1 = it; title = "Custom Game" }
-        SettingField("Mines 2x % (Green)", p2) { p2 = it; title = "Custom Game" }
-        SettingField("Mines 3x % (Blue)", p3) { p3 = it; title = "Custom Game" }
-        SettingField("Mines -1x % (Anti)", pAnti) { pAnti = it; title = "Custom Game" }
+        SettingField(stringResource(R.string.rows_label), rows) { rows = it; title = "Custom" }
+        SettingField(stringResource(R.string.cols_label), cols) { cols = it; title = "Custom" }
+        SettingField(stringResource(R.string.mine_1x_label), p1) { p1 = it; title = "Custom" }
+        SettingField(stringResource(R.string.mine_2x_label), p2) { p2 = it; title = "Custom" }
+        SettingField(stringResource(R.string.mine_3x_label), p3) { p3 = it; title = "Custom" }
+        SettingField(stringResource(R.string.mine_anti_label), pAnti) { pAnti = it; title = "Custom" }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
         ) {
-            Text("Charge Mode (Math logic)", modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.charge_mode_label), modifier = Modifier.weight(1f), color = if (skin.isDark) Color.LightGray else Color.DarkGray)
             Switch(checked = isChargeMode, onCheckedChange = { 
                 isChargeMode = it
-                title = "Custom Game"
+                title = "Custom"
             })
         }
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "Total Mines: ${String.format("%.1f", totalPercent)}%",
-            color = if (!isPercentValid) Color.Red else Color.DarkGray,
+            text = stringResource(R.string.total_mines_label, String.format("%.1f", totalPercent)),
+            color = if (!isPercentValid) Color.Red else (if (skin.isDark) Color.Cyan else Color.Blue),
             fontWeight = FontWeight.Bold
         )
 
         Spacer(Modifier.height(24.dp))
         Row {
             Button(onClick = onBack, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) {
-                Text("BACK")
+                Text(stringResource(R.string.back_button))
             }
             Spacer(Modifier.width(16.dp))
             Button(
                 onClick = {
                     onStart(LevelSettings(
-                        title = title,
+                        title = if (title == "Custom") "Custom Game" else title,
                         rows = rowsValue,
                         cols = colsValue,
                         p1 = p1.toDoubleOrNull() ?: 10.0,
@@ -205,9 +323,10 @@ fun CustomSettingsScreen(
                         isChargeMode = isChargeMode
                     ))
                 },
-                enabled = isValid
+                enabled = isValid,
+                colors = ButtonDefaults.buttonColors(containerColor = skin.panelBackground)
             ) {
-                Text("START")
+                Text(stringResource(R.string.start_button), color = if (skin.isDark) Color.White else Color.Black)
             }
         }
     }
@@ -215,16 +334,49 @@ fun CustomSettingsScreen(
 
 @Composable
 fun SettingField(label: String, value: String, onValueChange: (String) -> Unit) {
+    val skin = LocalGameSkin.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
-        Text(label, modifier = Modifier.weight(1f))
+        Text(label, modifier = Modifier.weight(1f), color = if (skin.isDark) Color.LightGray else Color.DarkGray)
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.width(150.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = if (skin.isDark) Color.White else Color.Black,
+                unfocusedTextColor = if (skin.isDark) Color.White else Color.Black,
+                focusedBorderColor = Color.Cyan,
+                unfocusedBorderColor = skin.gridBorder
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Main Menu Wireframe")
+@Composable
+fun MainMenuPreview() {
+    Crazy_minesveeperTheme(skin = GameSkins.ClassicRetro) {
+        MainMenu(
+            currentSkin = GameSkins.ClassicRetro,
+            onSkinChange = {},
+            onStartCustom = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Custom Settings Wireframe")
+@Composable
+fun SettingsPreview() {
+    val repo = GameRepositoryImpl()
+    Crazy_minesveeperTheme(skin = GameSkins.DeepDark) {
+        CustomSettingsScreen(
+            initialSettings = repo.getDefaultLevel(),
+            repository = repo,
+            onStart = {},
+            onBack = {}
         )
     }
 }

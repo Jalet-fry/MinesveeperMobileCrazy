@@ -1,0 +1,63 @@
+@startuml
+skinparam handwritten true
+skinparam backgroundcolor #FFFFFF
+skinparam shadowing false
+
+title UI Button Layouts (Arrangement only)
+
+package "Main Menu" {
+    rectangle " " as MenuPadding1 #white
+    rectangle " [ Skin 1 ] [ Skin 2 ] [ Skin 3 ] " as Skins
+    rectangle " " as MenuPadding2 #white
+    rectangle " [       NEW GAME       ] " as BtnNew #D4EDDA
+}
+
+package "Custom Settings Screen" {
+    rectangle " [Preset 1] [Preset 2] [Preset 3] " as Presets
+    rectangle " " as SetPadding #white
+    rectangle " [ Field ] " as F1
+    rectangle " [ Field ] " as F2
+    rectangle " [ Field ] " as F3
+    rectangle " [ Field ] " as F4
+    rectangle " [  (o)  ] " as SwitchButton
+    rectangle " " as SetPadding2 #white
+    rectangle " [ BACK ]    [ START ] " as NavButtons #D4EDDA
+}
+
+package "Game Screen" {
+    rectangle " [ Header ] [ (||) ] " as Header #F8F9FA
+    rectangle " " as GamePadding #white
+    rectangle " " as GameGrid {
+        rectangle "          \n   Grid   \n          " as Grid
+        rectangle " [ (R) ] " as ResetZoom #F8F9FA
+    }
+    rectangle " [ SETTINGS ] [ TOOL ] [ RESTART ] " as GameControls #D4EDDA
+}
+
+package "Dialogs" {
+    rectangle " [ PLAY AGAIN ] " as PlayAgain #D4EDDA
+    rectangle " [ BACK TO MENU ] " as BackMenu
+    rectangle " " as DialogSep #white
+    rectangle " [ (>) RESUME ] " as ResumeBtn #D4EDDA
+}
+
+' Visual layout ordering
+MenuPadding1 -[hidden]down- Skins
+Skins -[hidden]down- MenuPadding2
+MenuPadding2 -[hidden]down- BtnNew
+
+Presets -[hidden]down- SetPadding
+SetPadding -[hidden]down- F1
+F1 -[hidden]down- SwitchButton
+SwitchButton -[hidden]down- SetPadding2
+SetPadding2 -[hidden]down- NavButtons
+
+Header -[hidden]down- GamePadding
+GamePadding -[hidden]down- GameGrid
+GameGrid -[hidden]down- GameControls
+
+PlayAgain -[hidden]down- BackMenu
+BackMenu -[hidden]down- DialogSep
+DialogSep -[hidden]down- ResumeBtn
+
+@enduml
